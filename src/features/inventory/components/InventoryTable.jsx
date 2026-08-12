@@ -5,10 +5,10 @@ import { exportToCSV, exportToPDF } from '../../../utils/exportUtils';
 export const InventoryTable = ({ onEdit, searchTerm, category }) => {
   const { items, deleteItem, companyName } = useInventory();
 
-  const filteredItems = items.filter((item) => {
-    const matchSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchCategory = category === 'Semua' || item.category === category;
-    return matchSearch && matchCategory;
+  const filteredItems = items.filter(item => {
+    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = category === 'Semua' || item.category === category;
+    return matchesSearch && matchesCategory;
   });
 
   const formatRupiah = (number) => {
@@ -47,33 +47,38 @@ export const InventoryTable = ({ onEdit, searchTerm, category }) => {
             <tr>
               <th className="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Barang</th>
               <th className="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Kategori</th>
-              <th className="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Stok</th>
+              <th className="px-6 py-3.5 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Stok</th>
               <th className="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Harga Satuan</th>
+              <th className="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Total Harga</th>
               <th className="px-6 py-3.5 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Aksi</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-slate-200">
             {filteredItems.length === 0 ? (
               <tr>
-                <td colSpan="5" className="px-6 py-8 text-center text-slate-400 text-sm">Tidak ada barang yang ditemukan.</td>
+                <td colSpan="6" className="px-6 py-8 text-center text-slate-400 text-sm">Tidak ada barang yang ditemukan.</td>
               </tr>
             ) : (
-              filteredItems.map((item) => (
-                <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{item.name}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
-                    <span className="px-2.5 py-1 inline-flex text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700">
-                      {item.category}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-medium">{item.stock}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-medium">{formatRupiah(item.price)}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <button onClick={() => onEdit(item)} className="text-indigo-600 hover:text-indigo-900 font-semibold mr-3">Edit</button>
-                    <button onClick={() => deleteItem(item.id)} className="text-rose-600 hover:text-rose-900 font-semibold">Hapus</button>
-                  </td>
-                </tr>
-              ))
+              filteredItems.map((item) => {
+                const totalHarga = Number(item.stock) * Number(item.price);
+                return (
+                  <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-slate-900">{item.name}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600">
+                      <span className="px-2.5 py-1 inline-flex text-xs font-semibold rounded-full bg-indigo-50 text-indigo-700">
+                        {item.category}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-center font-medium text-slate-600">{item.stock}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 font-medium">{formatRupiah(item.price)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-indigo-600 font-bold">{formatRupiah(totalHarga)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                      <button onClick={() => onEdit(item)} className="text-indigo-600 hover:text-indigo-900 font-semibold mr-3">Edit</button>
+                      <button onClick={() => deleteItem(item.id)} className="text-rose-600 hover:text-rose-900 font-semibold">Hapus</button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

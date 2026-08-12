@@ -3,12 +3,7 @@ import { useInventory } from '../context/InventoryContext';
 
 export const InventoryForm = ({ currentItem, clearCurrentItem }) => {
   const { addItem, updateItem } = useInventory();
-  const [formData, setFormData] = useState({
-    name: '',
-    category: '',
-    stock: '',
-    price: '',
-  });
+  const [formData, setFormData] = useState({ name: '', category: '', stock: '', price: '' });
 
   useEffect(() => {
     if (currentItem) {
@@ -20,49 +15,38 @@ export const InventoryForm = ({ currentItem, clearCurrentItem }) => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (
-      !formData.name ||
-      !formData.category ||
-      formData.stock === '' ||
-      formData.price === ''
-    )
-      return;
+    if (!formData.name || !formData.category || formData.stock === '' || formData.price === '') return;
 
     if (currentItem) {
       updateItem(currentItem.id, {
         ...formData,
         stock: Number(formData.stock),
-        price: Number(formData.price),
+        price: Number(formData.price)
       });
       clearCurrentItem();
     } else {
       addItem({
         ...formData,
         stock: Number(formData.stock),
-        price: Number(formData.price),
+        price: Number(formData.price)
       });
     }
     setFormData({ name: '', category: '', stock: '', price: '' });
   };
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="bg-white shadow-xs rounded-2xl p-6 border border-slate-200"
-    >
+    <form onSubmit={handleSubmit} className="bg-white shadow-xs rounded-2xl p-6 border border-slate-200">
       <h3 className="text-base font-bold text-slate-800 mb-4">
         {currentItem ? 'Edit Barang Inventori' : 'Tambah Barang Baru'}
       </h3>
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
-            Nama Barang
-          </label>
+          <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Nama Barang</label>
           <input
             type="text"
             name="name"
@@ -74,9 +58,7 @@ export const InventoryForm = ({ currentItem, clearCurrentItem }) => {
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
-            Kategori
-          </label>
+          <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Kategori</label>
           <input
             type="text"
             name="category"
@@ -88,9 +70,7 @@ export const InventoryForm = ({ currentItem, clearCurrentItem }) => {
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
-            Stok
-          </label>
+          <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Stok</label>
           <input
             type="number"
             name="stock"
@@ -102,9 +82,7 @@ export const InventoryForm = ({ currentItem, clearCurrentItem }) => {
           />
         </div>
         <div>
-          <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">
-            Harga (IDR)
-          </label>
+          <label className="block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wider">Harga (IDR)</label>
           <input
             type="number"
             name="price"
@@ -120,10 +98,7 @@ export const InventoryForm = ({ currentItem, clearCurrentItem }) => {
         {currentItem && (
           <button
             type="button"
-            onClick={() => {
-              clearCurrentItem();
-              setFormData({ name: '', category: '', stock: '', price: '' });
-            }}
+            onClick={() => { clearCurrentItem(); setFormData({ name: '', category: '', stock: '', price: '' }); }}
             className="bg-slate-200 text-slate-700 px-4 py-2 rounded-xl text-sm font-semibold hover:bg-slate-300 transition-colors"
           >
             Batal
