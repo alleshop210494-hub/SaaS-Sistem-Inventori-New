@@ -1,100 +1,94 @@
 import React from 'react';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
+import { 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from 'recharts';
 import { useInventory } from '../context/InventoryContext';
-
-const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export const InventoryCharts = () => {
   const { items } = useInventory();
 
   const dataByCategory = items.reduce((acc, item) => {
-    const existing = acc.find((i) => i.name === item.category);
+    const existing = acc.find(i => i.name === item.category);
     if (existing) {
       existing.stock += Number(item.stock);
-      existing.value += Number(item.stock) * Number(item.price);
+      existing.value += (Number(item.stock) * Number(item.price));
     } else {
       acc.push({
         name: item.category,
         stock: Number(item.stock),
-        value: Number(item.stock) * Number(item.price),
+        value: (Number(item.stock) * Number(item.price))
       });
     }
     return acc;
   }, []);
 
+  const formatRupiah = (number) => {
+    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number);
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div className="bg-white p-6 rounded-2xl shadow-xs border border-slate-200">
-        <h3 className="text-base font-bold text-slate-800 mb-4">
-          Distribusi Stok per Kategori
-        </h3>
-        <div className="h-64">
+      
+      {/* Grafik Stok */}
+      <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs">
+        <h3 className="text-sm font-bold text-slate-900 mb-4">Tren Stok per Kategori</h3>
+        <div className="h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={dataByCategory}>
+            <AreaChart data={dataByCategory}>
+              <defs>
+                <linearGradient id="colorStock" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.4}/>
+                  <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0.0}/>
+                </linearGradient>
+              </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis dataKey="name" stroke="#64748b" fontSize={12} />
-              <YAxis stroke="#64748b" fontSize={12} />
+              <XAxis dataKey="name" stroke="#64748b" fontSize={11} />
+              <YAxis stroke="#64748b" fontSize={11} />
               <Tooltip />
-              <Legend wrapperStyle={{ fontSize: '12px' }} />
-              <Bar
-                dataKey="stock"
-                fill="#4f46e5"
-                name="Total Stok"
-                radius={[4, 4, 0, 0]}
+              <Area 
+                type="monotone" 
+                dataKey="stock" 
+                stroke="#0ea5e9" 
+                strokeWidth={2.5} 
+                fillOpacity={1} 
+                fill="url(#colorStock)" 
+                name="Total Stok" 
               />
-            </BarChart>
+            </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
 
-      <div className="bg-white p-6 rounded-2xl shadow-xs border border-slate-200">
-        <h3 className="text-base font-bold text-slate-800 mb-4">
-          Nilai Aset per Kategori
-        </h3>
-        <div className="h-64">
+      {/* Grafik Nilai Aset */}
+      <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs">
+        <h3 className="text-sm font-bold text-slate-900 mb-4">Tren Nilai Aset per Kategori</h3>
+        <div className="h-72 w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={dataByCategory}
-                dataKey="value"
-                nameKey="name"
-                cx="50%"
-                cy="50%"
-                outerRadius={80}
-                label
-              >
-                {dataByCategory.map((entry, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
-                  />
-                ))}
-              </Pie>
-              <Tooltip
-                formatter={(value) =>
-                  new Intl.NumberFormat('id-ID', {
-                    style: 'currency',
-                    currency: 'IDR',
-                  }).format(value)
-                }
+            <AreaChart data={dataByCategory}>
+              <defs>
+                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#6366f1" stopOpacity={0.4}/>
+                  <stop offset="95%" stopColor="#6366f1" stopOpacity={0.0}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis dataKey="name" stroke="#64748b" fontSize={11} />
+              <YAxis stroke="#64748b" fontSize={11} />
+              <Tooltip formatter={(value) => formatRupiah(value)} />
+              <Area 
+                type="monotone" 
+                dataKey="value" 
+                stroke="#6366f1" 
+                strokeWidth={2.5} 
+                fillOpacity={1} 
+                fill="url(#colorValue)" 
+                name="Nilai Aset (IDR)" 
               />
-              <Legend wrapperStyle={{ fontSize: '12px' }} />
-            </PieChart>
+            </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
+
     </div>
   );
 };
