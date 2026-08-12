@@ -4,8 +4,10 @@ import { neon } from '@neondatabase/serverless';
 
 const InventoryContext = createContext();
 
-// Inisialisasi koneksi langsung ke Neon Database
-const sql = neon(import.meta.env.VITE_NEON_DATABASE_URL || '');
+// Inisialisasi koneksi langsung ke Neon Database dengan menonaktifkan warning browser
+const sql = neon(import.meta.env.VITE_NEON_DATABASE_URL || '', {
+  disableWarningInBrowsers: true
+});
 
 export const InventoryProvider = ({ children }) => {
   const { user } = useUser();
@@ -13,7 +15,6 @@ export const InventoryProvider = ({ children }) => {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Ambil data dari tabel items di Neon saat aplikasi pertama kali dimuat
   useEffect(() => {
     fetchItems();
   }, []);
