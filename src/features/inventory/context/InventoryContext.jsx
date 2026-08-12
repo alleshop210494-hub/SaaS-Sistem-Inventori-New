@@ -1,18 +1,19 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useUser } from '@clerk/clerk-react';
 import { neon } from '@neondatabase/serverless';
 
 const InventoryContext = createContext();
 
-const sql = neon(import.meta.env.VITE_NEON_DATABASE_URL || 'postgresql://user:password@host/dbname?sslmode=require');
+// Inisialisasi koneksi langsung ke Neon Database
+const sql = neon(import.meta.env.VITE_NEON_DATABASE_URL || '');
 
 export const InventoryProvider = ({ children }) => {
+  const { user } = useUser();
+  const [companyName, setCompanyName] = useState('PT 12345');
   const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  const [companyName, setCompanyName] = useState(() => {
-    return localStorage.getItem('inventory_company_name') || 'CloudInventory';
-  });
-
+  // Ambil data dari tabel items di Neon saat aplikasi pertama kali dimuat
   useEffect(() => {
     fetchItems();
   }, []);
@@ -21,9 +22,7 @@ export const InventoryProvider = ({ children }) => {
     try {
       setLoading(true);
       const data = await sql`SELECT * FROM items ORDER BY id DESC`;
-      if (data) {
-        setItems(data);
-      }
+      setItems(data);
     } catch (error) {
       console.error("Gagal mengambil data dari Neon:", error);
     } finally {
@@ -31,24 +30,45 @@ export const InventoryProvider = ({ children }) => {
     }
   };
 
-  useEffect(() => {
-    localStorage.setItem('inventory_company_name', companyName);
-  }, [companyName]);
-
-  const addItem = async (item) => {
+  const addItem = async (newItem) => {
+    const currentUsername = user?.username || user?.primaryEmailAddress?.emailAddress || user?.fullName || 'Administrator';
+    
     try {
       const result = await sql`
-        INSERT INTO items (name, category, stock, price) 
-        VALUES (${item.name}, ${item.category}, ${item.stock}, ${item.price})
+        INSERT INTO items (name, category, stock, price, added_by)
+        VALUES (${newItem.name}, ${newItem.category}, ${newItem.stock}, ${newItem.price}, ${currentUsername})
         RETURNING *
       `;
       if (result && result[0]) {
         setItems(prev => [result[0], ...prev]);
       }
     } catch (error) {
-      console.error("Gagal menambah barang ke Neon:", error);
-      const newItem = { ...item, id: Date.now() };
-      setItems(prev => [newItem, ...prev]);
+      console.error("Gagal menambah data ke Neon:", error);
+    }
+  };
+
+  const updateItem = async (id, updatedData) => {
+    try {
+      const currentItem = items.find(i => i.id === id) || {};
+      const name = updatedData.name !== undefined ? updatedData.name : currentItem.name;
+      const category = updatedData.category !== undefined ? updatedData.category : currentItem.category;
+      const stock = updatedData.stock !== undefined ? updatedData.stock : currentItem.stock;
+      const price = updatedData.price !== undefined ? updatedData.price : currentItem.price;
+
+      const result = await sql`
+        UPDATE items 
+        SET name = ${name},
+            category = ${category},
+            stock = ${stock},
+            price = ${price}
+        WHERE id = ${id}
+        RETURNING *
+      `;
+      if (result && result[0]) {
+        setItems(prev => prev.map(item => item.id === id ? result[0] : item));
+      }
+    } catch (error) {
+      console.error("Gagal memperbarui data di Neon:", error);
     }
   };
 
@@ -57,36 +77,16 @@ export const InventoryProvider = ({ children }) => {
       await sql`DELETE FROM items WHERE id = ${id}`;
       setItems(prev => prev.filter(item => item.id !== id));
     } catch (error) {
-      console.error("Gagal menghapus barang dari Neon:", error);
-      setItems(prev => prev.filter(item => item.id !== id));
-    }
-  };
-
-  const updateItem = async (id, updatedItem) => {
-    try {
-      const result = await sql`
-        UPDATE items 
-        SET name = ${updatedItem.name}, category = ${updatedItem.category}, stock = ${updatedItem.stock}, price = ${updatedItem.price}
-        WHERE id = ${id}
-        RETURNING *
-      `;
-      if (result && result[0]) {
-        setItems(prev => prev.map(item => item.id === id ? result[0] : item));
-      }
-    } catch (error) {
-      console.error("Gagal memperbarui barang di Neon:", error);
-      setItems(prev => prev.map(item => item.id === id ? { ...item, ...updatedItem } : item));
+      console.error("Gagal menghapus data dari Neon:", error);
     }
   };
 
   const updateCompanyName = (newName) => {
-    if (newName && newName.trim() !== '') {
-      setCompanyName(newName.trim());
-    }
+    setCompanyName(newName);
   };
 
   return (
-    <InventoryContext.Provider value={{ items, addItem, deleteItem, updateItem, companyName, updateCompanyName, loading }}>
+    <InventoryContext.Provider value={{ items, companyName, addItem, updateItem, deleteItem, updateCompanyName, loading }}>
       {children}
     </InventoryContext.Provider>
   );
