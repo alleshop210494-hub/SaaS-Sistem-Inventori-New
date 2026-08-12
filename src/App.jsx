@@ -7,6 +7,7 @@ import { InventoryTable } from './features/inventory/components/InventoryTable';
 import { InventoryControls } from './features/inventory/components/InventoryControls';
 import { InventoryDashboard } from './features/inventory/components/InventoryDashboard';
 import { InventoryCharts } from './features/inventory/components/InventoryCharts';
+import { InventoryStockOpname } from './features/inventory/components/InventoryStockOpname';
 
 const MainDashboard = () => {
   const { user, logout } = useAuth();
@@ -23,6 +24,15 @@ const MainDashboard = () => {
     const newName = prompt("Masukkan nama perusahaan baru:", companyName);
     if (newName) {
       updateCompanyName(newName);
+    }
+  };
+
+  const getPageTitle = () => {
+    switch (activeMenu) {
+      case 'overview': return `Ringkasan & Analitik - ${companyName}`;
+      case 'management': return 'Manajemen Data Inventori';
+      case 'opname': return 'Stock Opname Fisik';
+      default: return 'Dashboard';
     }
   };
 
@@ -49,7 +59,7 @@ const MainDashboard = () => {
                     title="Ubah Nama Perusahaan"
                     className="text-[11px] text-indigo-600 hover:text-indigo-800 font-medium underline transition-colors"
                   >
-                    Edit
+                    Ubah
                   </button>
                 </div>
               </div>
@@ -82,6 +92,19 @@ const MainDashboard = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
               </svg>
               <span>Manajemen Barang</span>
+            </button>
+            <button
+              onClick={() => setActiveMenu('opname')}
+              className={`w-full flex items-center space-x-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                activeMenu === 'opname'
+                  ? 'bg-indigo-50 text-indigo-600 shadow-xs'
+                  : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+              }`}
+            >
+              <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+              <span>Stock Opname</span>
             </button>
           </nav>
         </div>
@@ -130,7 +153,7 @@ const MainDashboard = () => {
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-white p-6 rounded-2xl border border-slate-200 shadow-xs">
               <div>
                 <h1 className="text-xl lg:text-2xl font-extrabold text-slate-900 tracking-tight">
-                  {activeMenu === 'overview' ? `Ringkasan & Analitik - ${companyName}` : 'Manajemen Data Inventori'}
+                  {getPageTitle()}
                 </h1>
                 <p className="text-slate-500 text-xs lg:text-sm mt-1">
                   Pantau aset perusahaan secara *real-time* dengan kontrol penuh inventori cloud.
@@ -142,12 +165,14 @@ const MainDashboard = () => {
               </div>
             </div>
 
-            {activeMenu === 'overview' ? (
+            {activeMenu === 'overview' && (
               <div className="space-y-8">
                 <InventoryDashboard />
                 <InventoryCharts />
               </div>
-            ) : (
+            )}
+
+            {activeMenu === 'management' && (
               <div className="space-y-6">
                 <InventoryForm currentItem={currentItem} clearCurrentItem={() => setCurrentItem(null)} />
                 <InventoryControls 
@@ -163,6 +188,10 @@ const MainDashboard = () => {
                   category={category}
                 />
               </div>
+            )}
+
+            {activeMenu === 'opname' && (
+              <InventoryStockOpname />
             )}
           </div>
         </main>
