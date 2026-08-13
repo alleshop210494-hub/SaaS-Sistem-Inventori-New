@@ -3,35 +3,75 @@ import { useInventory } from '../context/InventoryContext';
 import { exportToCSV, exportToPDF } from '../../../utils/exportUtils';
 
 export const InventoryTable = ({ onEdit, searchTerm, category }) => {
-  const { items, deleteItem, companyName } = useInventory();
+  const { items, deleteItem } = useInventory();
 
+  // Filter data berdasarkan pencarian dan kategori
   const filteredItems = items.filter(item => {
-    const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = category === 'Semua' || item.category === category;
+    const matchesSearch = item.name.toLowerCase().includes((searchTerm || '').toLowerCase());
+    const matchesCategory = category === 'Semua' || !category || item.category === category;
     return matchesSearch && matchesCategory;
   });
 
-  const formatRupiah = (number) => {
-    return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(number);
+  // Format khusus untuk Export Excel/CSV (Tanpa kolom "Ditambahkan Oleh")
+  const handleExportExcel = () => {
+    if (filteredItems.length === 0) {
+      alert('Tidak ada data barang untuk diexport.');
+      return;
+    }
+    const dataToExport = filteredItems.map((item, index) => ({
+      No: index + 1,
+      'Nama Barang': item.name,
+      Kategori: item.category,
+      Stok: `${item.stock} unit`,
+      'Harga Satuan': `Rp ${Number(item.price).toLocaleString('id-ID')}`,
+      'Total Nilai': `Rp ${Number(item.stock * item.price).toLocaleString('id-ID')}`
+    }));
+    exportToCSV(dataToExport, 'daftar-inventori-barang.csv');
+  };
+
+  // Format untuk Export PDF (Tanpa kolom "Ditambahkan Oleh")
+  const handleExportPDF = () => {
+    if (filteredItems.length === 0) {
+      alert('Tidak ada data barang untuk diexport.');
+      return;
+    }
+    const dataToExport = filteredItems.map((item, index) => ({
+      No: index + 1,
+      'Nama Barang': item.name,
+      Kategori: item.category,
+      Stok: `${item.stock} unit`,
+      'Harga Satuan': `Rp ${Number(item.price).toLocaleString('id-ID')}`,
+      'Total Nilai': `Rp ${Number(item.stock * item.price).toLocaleString('id-ID')}`
+    }));
+    const columns = [
+      { header: 'No', dataKey: 'No' },
+      { header: 'Nama Barang', dataKey: 'Nama Barang' },
+      { header: 'Kategori', dataKey: 'Kategori' },
+      { header: 'Stok', dataKey: 'Stok' },
+      { header: 'Harga Satuan', dataKey: 'Harga Satuan' },
+      { header: 'Total Nilai', dataKey: 'Total Nilai' }
+    ];
+    exportToPDF(dataToExport, columns, 'Laporan Daftar Inventori Barang', 'daftar-inventori-barang.pdf');
   };
 
   return (
-    <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs">
-      <div className="px-6 py-4 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-center gap-3 bg-slate-50/50">
+    <div className="bg-white rounded-3xl border border-orange-100 shadow-sm overflow-hidden">
+      <div className="p-6 border-b border-orange-50 bg-[#FAF6EE]/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h3 className="text-sm font-bold text-slate-900">Daftar Inventori Barang</h3>
-          <p className="text-xs text-slate-500">Kelola dan pantau seluruh aset inventori perusahaan.</p>
+          <h3 className="text-xs font-bold text-orange-950 uppercase tracking-wider">Daftar Inventori Barang</h3>
+          <p className="text-[11px] text-orange-600/70 mt-0.5">Kelola dan pantau seluruh aset inventori perusahaan.</p>
         </div>
-        <div className="flex items-center space-x-2">
+
+        <div className="flex items-center space-x-3">
           <button
-            onClick={() => exportToCSV(filteredItems, 'laporan-inventori.csv')}
-            className="bg-emerald-50 text-emerald-700 border border-emerald-200 px-3.5 py-1.5 text-xs font-semibold rounded-xl hover:bg-emerald-100 transition-colors"
+            onClick={handleExportExcel}
+            className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition-colors shadow-xs"
           >
-            Export CSV
+            Export Excel / CSV
           </button>
           <button
-            onClick={() => exportToPDF(filteredItems, companyName, 'laporan-inventori.pdf')}
-            className="bg-rose-50 text-rose-700 border border-rose-200 px-3.5 py-1.5 text-xs font-semibold rounded-xl hover:bg-rose-100 transition-colors"
+            onClick={handleExportPDF}
+            className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-colors shadow-xs"
           >
             Export PDF
           </button>
@@ -39,43 +79,54 @@ export const InventoryTable = ({ onEdit, searchTerm, category }) => {
       </div>
 
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-100">
-          <thead className="bg-slate-50/80">
-            <tr>
-              <th className="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Barang</th>
-              <th className="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Kategori</th>
-              <th className="px-6 py-3.5 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Stok</th>
-              <th className="px-6 py-3.5 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Harga Satuan</th>
-              <th className="px-6 py-3.5 text-right text-xs font-bold text-slate-500 uppercase tracking-wider">Total Nilai</th>
-              <th className="px-6 py-3.5 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Aksi</th>
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="border-b border-orange-100 text-[11px] font-bold text-orange-950 uppercase tracking-wider bg-orange-50/30">
+              <th className="p-4">Nama Barang</th>
+              <th className="p-4">Kategori</th>
+              <th className="p-4">Stok</th>
+              <th className="p-4">Harga Satuan</th>
+              <th className="p-4">Total Nilai</th>
+              <th className="p-4 text-right">Aksi</th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-slate-100">
+          <tbody className="divide-y divide-orange-50 text-xs">
             {filteredItems.length === 0 ? (
               <tr>
-                <td colSpan="6" className="px-6 py-10 text-center text-slate-400 text-xs">Tidak ada data ditemukan.</td>
+                <td colSpan="6" className="p-12 text-center text-orange-400">Tidak ada data barang yang ditemukan.</td>
               </tr>
             ) : (
-              filteredItems.map((item) => {
-                const totalHarga = Number(item.stock) * Number(item.price);
-                return (
-                  <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-6 py-4 text-sm font-semibold text-slate-900">{item.name}</td>
-                    <td className="px-6 py-4 text-xs text-slate-600">
-                      <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg font-medium">
-                        {item.category}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-right font-semibold text-slate-800">{item.stock}</td>
-                    <td className="px-6 py-4 text-sm text-right font-medium text-slate-600">{formatRupiah(item.price)}</td>
-                    <td className="px-6 py-4 text-sm text-right font-bold text-indigo-600">{formatRupiah(totalHarga)}</td>
-                    <td className="px-6 py-4 text-center text-xs space-x-3">
-                      <button onClick={() => onEdit(item)} className="text-indigo-600 hover:text-indigo-900 font-semibold">Edit</button>
-                      <button onClick={() => deleteItem(item.id)} className="text-rose-600 hover:text-rose-900 font-semibold">Hapus</button>
-                    </td>
-                  </tr>
-                );
-              })
+              filteredItems.map(item => (
+                <tr key={item.id} className="hover:bg-orange-50/40 transition-colors">
+                  <td className="p-4 font-bold text-orange-950">{item.name}</td>
+                  <td className="p-4">
+                    <span className="px-2.5 py-1 bg-orange-100/60 text-orange-800 rounded-lg text-[10px] font-bold">
+                      {item.category}
+                    </span>
+                  </td>
+                  <td className="p-4 font-semibold text-orange-900">{item.stock} unit</td>
+                  <td className="p-4 text-orange-900">Rp {Number(item.price).toLocaleString('id-ID')}</td>
+                  <td className="p-4 font-extrabold text-orange-950">Rp {Number(item.stock * item.price).toLocaleString('id-ID')}</td>
+                  <td className="p-4 text-right space-x-2">
+                    <button 
+                      onClick={() => onEdit(item)} 
+                      className="text-blue-600 hover:text-blue-800 font-bold transition-colors"
+                    >
+                      Edit
+                    </button>
+                    <button 
+                      onClick={() => {
+                        if (confirm(`Yakin ingin menghapus ${item.name}?`)) {
+                          deleteItem(item.id);
+                        }
+                      }} 
+                      className="text-rose-600 hover:text-rose-800 font-bold transition-colors"
+                    >
+                      Hapus
+                    </button>
+                  </td>
+                </tr>
+              ))
             )}
           </tbody>
         </table>

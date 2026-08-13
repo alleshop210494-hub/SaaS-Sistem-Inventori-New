@@ -1,114 +1,194 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useInventory } from '../context/InventoryContext';
-import { exportStockOpnameToPDF } from '../../../utils/exportUtils';
+import { exportToCSV, exportToPDF } from '../../../utils/exportUtils';
 
 export const InventoryStockOpname = () => {
-  const { items, updateItem, companyName } = useInventory();
-  const [counts, setCounts] = useState({});
-  const [successMsg, setSuccessMsg] = useState('');
+  const { items, submitStockOpname } = useInventory();
+  const [opnameData, setOpnameData] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
 
-  const handleCountChange = (id, value) => {
-    setCounts(prev => ({ ...prev, [id]: value }));
+  useEffect(() => {
+    const initial = {};
+    items.forEach(item => {
+      initial[item.id] = item.stock;
+    });
+    setOpnameData(initial);
+  }, [items]);
+
+  const handleStockChange = (id, value) => {
+    setOpnameData(prev => ({
+      ...prev,
+      [id]: value === '' ? '' : parseInt(value, 10)
+    }));
   };
 
-  const handleApplyOpname = () => {
-    let updatedCount = 0;
-    Object.keys(counts).forEach(id => {
-      const numericId = Number(id);
-      const physicalStock = Number(counts[id]);
-      if (!isNaN(physicalStock)) {
-        const item = items.find(i => i.id === numericId);
-        if (item && item.stock !== physicalStock) {
-          updateItem(numericId, { stock: physicalStock });
-          updatedCount++;
-        }
-      }
+  const handleSubmitOpname = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSuccessMessage('');
+
+    try {
+      const results = items.map(item => ({
+        id: item.id,
+        name: item.name,
+        physicalStock: opnameData[item.id] !== undefined ? Number(opnameData[item.id]) : item.stock
+      }));
+
+      await submitStockOpname(results);
+      setSuccessMessage('Stock Opname berhasil disimpan dan otomatis tercatat di Tab Riwayat Transaksi!');
+    } catch (error) {
+      console.error("Error saving stock opname:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Format data untuk keperluan export (Excel/CSV & PDF)
+  const getFormattedDataForExport = () => {
+    return items.map((item, index) => {
+      const physical = opnameData[item.id] !== undefined ? opnameData[item.id] : item.stock;
+      const diff = physical - item.stock;
+      return {
+        No: index + 1,
+        'Nama Barang': item.name,
+        Kategori: item.category,
+        'Stok Sistem': item.stock,
+        'Stok Fisik': physical,
+        Selisih: diff > 0 ? `+${diff}` : diff
+      };
     });
-    setSuccessMsg(`Berhasil menyinkronkan stok untuk ${updatedCount} barang.`);
-    setTimeout(() => setSuccessMsg(''), 4000);
+  };
+
+  const handleExportExcel = () => {
+    if (items.length === 0) {
+      alert('Tidak ada data stock opname untuk diexport.');
+      return;
+    }
+    const dataToExport = getFormattedDataForExport();
+    exportToCSV(dataToExport, 'stock-opname-inventori.csv');
+  };
+
+  const handleExportPDF = () => {
+    if (items.length === 0) {
+      alert('Tidak ada data stock opname untuk diexport.');
+      return;
+    }
+    const dataToExport = getFormattedDataForExport();
+    const columns = [
+      { header: 'No', dataKey: 'No' },
+      { header: 'Nama Barang', dataKey: 'Nama Barang' },
+      { header: 'Kategori', dataKey: 'Kategori' },
+      { header: 'Stok Sistem', dataKey: 'Stok Sistem' },
+      { header: 'Stok Fisik', dataKey: 'Stok Fisik' },
+      { header: 'Selisih', dataKey: 'Selisih' }
+    ];
+    exportToPDF(dataToExport, columns, 'Laporan Stock Opname Inventori', 'stock-opname-inventori.pdf');
   };
 
   return (
-    <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-100 pb-4">
+    <div className="max-w-5xl mx-auto space-y-6">
+      {/* Header & Export Controls */}
+      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-orange-100 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h3 className="text-sm font-bold text-slate-900">Formulir Stock Opname Fisik</h3>
-          <p className="text-xs text-slate-500">Sesuaikan jumlah stok sistem berdasarkan perhitungan fisik di lapangan.</p>
+          <span className="text-[10px] font-extrabold tracking-widest text-orange-400 uppercase">Verifikasi Fisik</span>
+          <h2 className="text-xl font-bold text-orange-950 mt-1">Stock Opname Inventori</h2>
+          <p className="text-xs text-orange-600/70 mt-0.5">Sesuaikan jumlah stok fisik aktual di gudang dengan data sistem secara real-time.</p>
         </div>
-        <div className="flex items-center space-x-2">
+
+        <div className="flex items-center space-x-3">
           <button
-            onClick={() => exportStockOpnameToPDF(items, counts, companyName, 'laporan-stock-opname.pdf')}
-            className="bg-rose-50 text-rose-700 border border-rose-200 px-3.5 py-1.5 text-xs font-semibold rounded-xl hover:bg-rose-100 transition-colors"
+            type="button"
+            onClick={handleExportExcel}
+            className="px-4 py-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition-colors flex items-center space-x-2 shadow-xs"
           >
-            Export PDF
+            <span>Export Excel / CSV</span>
           </button>
           <button
-            onClick={handleApplyOpname}
-            className="bg-indigo-600 text-white px-4 py-1.5 text-xs font-semibold rounded-xl hover:bg-indigo-700 transition-colors shadow-xs"
+            type="button"
+            onClick={handleExportPDF}
+            className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-colors flex items-center space-x-2 shadow-xs"
           >
-            Sinkronisasi Stok
+            <span>Export PDF</span>
           </button>
         </div>
       </div>
 
-      {successMsg && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl font-medium">
-          {successMsg}
+      {successMessage && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-2xl text-xs font-bold animate-in fade-in">
+          {successMessage}
         </div>
       )}
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-100">
-          <thead className="bg-slate-50/80">
-            <tr>
-              <th className="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Nama Barang</th>
-              <th className="px-6 py-3.5 text-left text-xs font-bold text-slate-500 uppercase tracking-wider">Kategori</th>
-              <th className="px-6 py-3.5 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Stok Sistem</th>
-              <th className="px-6 py-3.5 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Stok Fisik (Hitung)</th>
-              <th className="px-6 py-3.5 text-center text-xs font-bold text-slate-500 uppercase tracking-wider">Selisih</th>
-            </tr>
-          </thead>
-          <tbody className="bg-white divide-y divide-slate-100">
-            {items.length === 0 ? (
-              <tr>
-                <td colSpan="5" className="px-6 py-10 text-center text-slate-400 text-xs">Tidak ada data ditemukan.</td>
-              </tr>
-            ) : (
-              items.map((item) => {
-                const physicalVal = counts[item.id] !== undefined ? counts[item.id] : item.stock;
-                const diff = Number(physicalVal) - Number(item.stock);
-                return (
-                  <tr key={item.id} className="hover:bg-slate-50/60 transition-colors">
-                    <td className="px-6 py-4 text-sm font-semibold text-slate-900">{item.name}</td>
-                    <td className="px-6 py-4 text-xs text-slate-600">
-                      <span className="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-lg font-medium">
-                        {item.category}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-center font-semibold text-slate-700">{item.stock}</td>
-                    <td className="px-6 py-4 text-center">
-                      <input
-                        type="number"
-                        value={physicalVal}
-                        onChange={(e) => handleCountChange(item.id, e.target.value)}
-                        className="w-24 text-center px-3 py-1.5 border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-indigo-500 outline-none bg-slate-50/50 text-slate-900"
-                      />
-                    </td>
-                    <td className="px-6 py-4 text-center text-sm font-bold">
-                      {diff === 0 ? (
-                        <span className="text-slate-400">0</span>
-                      ) : diff > 0 ? (
-                        <span className="text-emerald-600">+{diff}</span>
-                      ) : (
-                        <span className="text-rose-600">{diff}</span>
-                      )}
-                    </td>
+      <div className="bg-white rounded-3xl border border-orange-100 shadow-sm overflow-hidden">
+        <form onSubmit={handleSubmitOpname}>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-[#FAF6EE]/60 border-b border-orange-100 text-[11px] font-bold text-orange-950 uppercase tracking-wider">
+                  <th className="p-4">Nama Barang</th>
+                  <th className="p-4">Kategori</th>
+                  <th className="p-4">Stok Sistem</th>
+                  <th className="p-4">Stok Fisik Aktual</th>
+                  <th className="p-4">Selisih</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-orange-50 text-xs">
+                {items.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" className="p-8 text-center text-orange-400">Belum ada data barang inventori.</td>
                   </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                ) : (
+                  items.map(item => {
+                    const physical = opnameData[item.id] !== undefined ? opnameData[item.id] : item.stock;
+                    const diff = physical - item.stock;
+                    return (
+                      <tr key={item.id} className="hover:bg-orange-50/40 transition-colors">
+                        <td className="p-4 font-bold text-orange-950">{item.name}</td>
+                        <td className="p-4">
+                          <span className="px-2.5 py-1 bg-orange-100/60 text-orange-800 rounded-lg text-[10px] font-bold">
+                            {item.category}
+                          </span>
+                        </td>
+                        <td className="p-4 font-semibold text-orange-900">{item.stock} unit</td>
+                        <td className="p-4">
+                          <input 
+                            type="number" 
+                            min="0"
+                            value={physical}
+                            onChange={(e) => handleStockChange(item.id, e.target.value)}
+                            className="w-28 px-3 py-1.5 bg-orange-50/50 border border-orange-200 rounded-xl text-orange-950 font-bold focus:outline-none focus:ring-2 focus:ring-orange-500"
+                            required
+                          />
+                        </td>
+                        <td className="p-4 font-bold">
+                          <span className={`px-2.5 py-1 rounded-lg text-[10px] ${
+                            diff === 0 ? 'bg-gray-100 text-gray-700' :
+                            diff > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'
+                          }`}>
+                            {diff > 0 ? `+${diff}` : diff}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {items.length > 0 && (
+            <div className="p-6 bg-[#FAF6EE]/40 border-t border-orange-100 flex justify-end">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-6 py-2.5 bg-orange-600 hover:bg-orange-700 text-white rounded-xl text-xs font-bold shadow-md shadow-orange-600/20 transition-all disabled:opacity-50"
+              >
+                {isSubmitting ? 'Menyimpan & Mencatat...' : 'Simpan & Catat Stock Opname'}
+              </button>
+            </div>
+          )}
+        </form>
       </div>
     </div>
   );
