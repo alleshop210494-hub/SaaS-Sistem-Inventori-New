@@ -132,7 +132,10 @@ const MainDashboard = () => {
 
         <div className="p-3.5 bg-[#FAF6EE] border border-orange-100/80 rounded-2xl flex items-center justify-between shadow-xs">
           <div className="flex items-center space-x-3 overflow-hidden">
-            <UserButton afterSignOutUrl="/" />
+            <UserButton 
+              afterSignOutUrl="/" 
+              appearance={{ elements: { userButtonPopoverFooter: { display: 'none' } } }} 
+            />
             <div className="overflow-hidden">
               <p className="text-xs font-extrabold text-orange-950 truncate">{user?.fullName || 'Administrator'}</p>
               <p className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1.5 mt-0.5">
@@ -175,7 +178,10 @@ const MainDashboard = () => {
               </nav>
             </div>
             <div className="p-3.5 bg-[#FAF6EE] border border-orange-100 rounded-2xl flex items-center space-x-3">
-              <UserButton afterSignOutUrl="/" />
+              <UserButton 
+                afterSignOutUrl="/" 
+                appearance={{ elements: { userButtonPopoverFooter: { display: 'none' } } }} 
+              />
               <p className="text-xs font-bold text-orange-950 truncate">{user?.fullName || 'Admin'}</p>
             </div>
           </div>
@@ -191,7 +197,10 @@ const MainDashboard = () => {
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
           <span className="font-extrabold text-xs text-orange-950">{companyName}</span>
-          <UserButton afterSignOutUrl="/" />
+          <UserButton 
+            afterSignOutUrl="/" 
+            appearance={{ elements: { userButtonPopoverFooter: { display: 'none' } } }} 
+          />
         </header>
 
         <main className="flex-1 p-5 sm:p-8 lg:p-10 max-w-7xl mx-auto w-full">
