@@ -4,7 +4,6 @@ import { neon } from '@neondatabase/serverless';
 
 const InventoryContext = createContext();
 
-// Inisialisasi koneksi langsung ke Neon Database dengan menonaktifkan warning browser
 const sql = neon(import.meta.env.VITE_NEON_DATABASE_URL || '', {
   disableWarningInBrowsers: true
 });
@@ -13,21 +12,44 @@ export const InventoryProvider = ({ children }) => {
   const { user } = useUser();
   const [companyName, setCompanyName] = useState('PT 12345');
   const [items, setItems] = useState([]);
+  const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchItems();
+    fetchData();
   }, []);
 
-  const fetchItems = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const data = await sql`SELECT * FROM items ORDER BY id DESC`;
-      setItems(data);
+      const itemsData = await sql`SELECT * FROM items ORDER BY id DESC`;
+      setItems(itemsData);
+      
+      try {
+        const transData = await sql`SELECT * FROM transactions ORDER BY id DESC`;
+        setTransactions(transData);
+      } catch (err) {
+        setTransactions([]);
+      }
     } catch (error) {
       console.error("Gagal mengambil data dari Neon:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const logTransaction = async (type, description, username) => {
+    try {
+      const result = await sql`
+        INSERT INTO transactions (type, description, added_by, created_at)
+        VALUES (${type}, ${description}, ${username}, NOW())
+        RETURNING *
+      `;
+      if (result && result[0]) {
+        setTransactions(prev => [result[0], ...prev]);
+      }
+    } catch (error) {
+      console.error("Gagal mencatat transaksi (Pastikan tabel transactions sudah dibuat di DB):", error);
     }
   };
 
@@ -42,6 +64,7 @@ export const InventoryProvider = ({ children }) => {
       `;
       if (result && result[0]) {
         setItems(prev => [result[0], ...prev]);
+        await logTransaction('Tambah Barang', `Menambahkan ${newItem.name} (${newItem.stock} unit)`, currentUsername);
       }
     } catch (error) {
       console.error("Gagal menambah data ke Neon:", error);
@@ -49,6 +72,7 @@ export const InventoryProvider = ({ children }) => {
   };
 
   const updateItem = async (id, updatedData) => {
+    const currentUsername = user?.username || user?.primaryEmailAddress?.emailAddress || user?.fullName || 'Administrator';
     try {
       const currentItem = items.find(i => i.id === id) || {};
       const name = updatedData.name !== undefined ? updatedData.name : currentItem.name;
@@ -67,6 +91,7 @@ export const InventoryProvider = ({ children }) => {
       `;
       if (result && result[0]) {
         setItems(prev => prev.map(item => item.id === id ? result[0] : item));
+        await logTransaction('Ubah Barang', `Memperbarui data ${name}`, currentUsername);
       }
     } catch (error) {
       console.error("Gagal memperbarui data di Neon:", error);
@@ -74,9 +99,14 @@ export const InventoryProvider = ({ children }) => {
   };
 
   const deleteItem = async (id) => {
+    const currentUsername = user?.username || user?.primaryEmailAddress?.emailAddress || user?.fullName || 'Administrator';
     try {
+      const targetItem = items.find(i => i.id === id);
       await sql`DELETE FROM items WHERE id = ${id}`;
       setItems(prev => prev.filter(item => item.id !== id));
+      if (targetItem) {
+        await logTransaction('Hapus Barang', `Menghapus ${targetItem.name}`, currentUsername);
+      }
     } catch (error) {
       console.error("Gagal menghapus data dari Neon:", error);
     }
@@ -87,7 +117,7 @@ export const InventoryProvider = ({ children }) => {
   };
 
   return (
-    <InventoryContext.Provider value={{ items, companyName, addItem, updateItem, deleteItem, updateCompanyName, loading }}>
+    <InventoryContext.Provider value={{ items, transactions, companyName, addItem, updateItem, deleteItem, updateCompanyName, loading }}>
       {children}
     </InventoryContext.Provider>
   );
