@@ -1,34 +1,61 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-// Fungsi untuk Export ke CSV / Excel
+/**
+ * Sanitasi nilai untuk mencegah CSV / Formula Injection.
+ * Karakter =, +, -, @ di awal string akan dinetralkan dengan tanda petik tunggal.
+ */
+const sanitizeCSVCell = (val) => {
+  if (val === null || val === undefined) return '""';
+  let str = String(val).trim();
+  
+  // Netralkan karakter eksekusi formula Excel
+  if (/^[=\+\-@\t\r]/.test(str)) {
+    str = `'${str}`;
+  }
+  
+  // Escape tanda petik ganda
+  return `"${str.replace(/"/g, '""')}"`;
+};
+
+// Export ke CSV / Excel dengan proteksi CSV Injection
 export const exportToCSV = (data, filename = 'export.csv') => {
-  if (!data || data.length === 0) {
-    alert('Tidak ada data untuk diexport.');
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    alert('Tidak ada data valid untuk diexport.');
     return;
   }
 
   const keys = Object.keys(data[0]);
-  const csvContent = [
-    keys.join(','),
-    ...data.map(row => keys.map(key => `"${row[key] !== undefined ? row[key] : ''}"`).join(','))
-  ].join('\n');
+  const headerRow = keys.map(key => `"${key.replace(/"/g, '""')}"`).join(',');
+  
+  const dataRows = data.map(row => 
+    keys.map(key => sanitizeCSVCell(row[key])).join(',')
+  );
 
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const csvContent = [headerRow, ...dataRows].join('\n');
+  const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' }); // \uFEFF untuk support UTF-8 BOM Excel
+  
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
   link.setAttribute('href', url);
-  link.setAttribute('download', filename);
+  link.setAttribute('download', filename.replace(/[^a-zA-Z0-9_\-\.]/g, '_')); // Sanitasi nama file
   link.style.visibility = 'hidden';
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
+  URL.revokeObjectURL(url);
 };
 
-// Fungsi untuk Export ke PDF yang aman dari error tipe data kolom
-export const exportToPDF = (data, columnsOrTitle = [], titleOrFilename = 'Laporan', filenameOpt = 'export.pdf', companyName = '') => {
-  if (!data || data.length === 0) {
-    alert('Tidak ada data untuk diexport.');
+// Export ke PDF yang Aman
+export const exportToPDF = (
+  data, 
+  columnsOrTitle = [], 
+  titleOrFilename = 'Laporan', 
+  filenameOpt = 'export.pdf', 
+  companyName = ''
+) => {
+  if (!data || !Array.isArray(data) || data.length === 0) {
+    alert('Tidak ada data valid untuk diexport.');
     return;
   }
 
@@ -39,7 +66,6 @@ export const exportToPDF = (data, columnsOrTitle = [], titleOrFilename = 'Lapora
     let title = titleOrFilename;
     let filename = filenameOpt;
 
-    // Jika parameter kedua bukan array (misal dikirim string judul), buat kolom otomatis dari key data
     if (!Array.isArray(columns)) {
       filename = titleOrFilename || 'export.pdf';
       title = columnsOrTitle || 'Laporan Inventori';
@@ -47,32 +73,35 @@ export const exportToPDF = (data, columnsOrTitle = [], titleOrFilename = 'Lapora
       columns = keys.map(key => ({ header: key.toUpperCase(), dataKey: key }));
     }
 
-    let startY = 20;
+    let startY = 18;
 
-    // Judul Dokumen
+    // Title Header
+    doc.setFont("helvetica", "bold");
     doc.setFontSize(16);
-    doc.text(title, 14, startY);
+    doc.text(String(title), 14, startY);
     startY += 7;
 
-    // Nama Perusahaan (jika ada)
+    // Company Name Subheader
     if (companyName) {
-      doc.setFontSize(11);
-      doc.setTextColor(60);
-      doc.text(`Perusahaan: ${companyName}`, 14, startY);
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(10);
+      doc.setTextColor(80);
+      doc.text(`Perusahaan: ${String(companyName)}`, 14, startY);
       startY += 6;
     }
 
-    // Timestamp / Waktu Cetak
-    doc.setFontSize(9);
-    doc.setTextColor(100);
+    // Timestamp
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(8);
+    doc.setTextColor(120);
     doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, startY);
     startY += 6;
 
-    // Format header & body untuk jspdf-autotable
-    const headers = columns.map(col => col.header);
+    // Table AutoTable Integration
+    const headers = columns.map(col => String(col.header || ''));
     const body = data.map(row => columns.map(col => {
       const val = row[col.dataKey] !== undefined ? row[col.dataKey] : (row[col.header] !== undefined ? row[col.header] : '');
-      return String(val);
+      return String(val ?? '');
     }));
 
     autoTable(doc, {
@@ -80,13 +109,15 @@ export const exportToPDF = (data, columnsOrTitle = [], titleOrFilename = 'Lapora
       body: body,
       startY: startY + 2,
       theme: 'grid',
-      headStyles: { fillColor: [234, 88, 12] }, // Warna Orange sesuai tema
-      styles: { fontSize: 9, cellPadding: 4 }
+      headStyles: { fillColor: [234, 88, 12], textColor: 255, fontStyle: 'bold' },
+      styles: { fontSize: 8, cellPadding: 3, overflow: 'linebreak' },
+      alternateRowStyles: { fillColor: [255, 247, 237] }
     });
 
-    doc.save(filename);
+    const safeFilename = String(filename).replace(/[^a-zA-Z0-9_\-\.]/g, '_');
+    doc.save(safeFilename);
   } catch (error) {
     console.error("Gagal membuat PDF:", error);
-    alert("Terjadi kesalahan saat membuat file PDF. Silakan periksa konsol.");
+    alert("Terjadi kesalahan teknis saat membuat file PDF.");
   }
 };

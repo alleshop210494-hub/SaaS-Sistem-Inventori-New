@@ -8,7 +8,22 @@ export const InventorySuppliers = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await addSupplier(formData);
+    
+    // Sanitasi & Trim seluruh input form
+    const sanitizedData = {
+      name: formData.name.trim(),
+      contactPerson: formData.contactPerson.trim(),
+      phone: formData.phone.trim().replace(/[^0-9+\-\s()]/g, ''), // Hanya izinkan karakter nomor telepon valid
+      email: formData.email.trim().toLowerCase(),
+      address: formData.address.trim()
+    };
+
+    if (!sanitizedData.name) {
+      alert("Nama supplier tidak boleh kosong.");
+      return;
+    }
+
+    await addSupplier(sanitizedData);
     setFormData({ name: '', contactPerson: '', phone: '', email: '', address: '' });
   };
 
