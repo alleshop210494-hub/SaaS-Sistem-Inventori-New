@@ -26,7 +26,7 @@ export const exportToCSV = (data, filename = 'export.csv') => {
 };
 
 // Fungsi untuk Export ke PDF yang aman dari error tipe data kolom
-export const exportToPDF = (data, columnsOrTitle = [], titleOrFilename = 'Laporan', filenameOpt = 'export.pdf') => {
+export const exportToPDF = (data, columnsOrTitle = [], titleOrFilename = 'Laporan', filenameOpt = 'export.pdf', companyName = '') => {
   if (!data || data.length === 0) {
     alert('Tidak ada data untuk diexport.');
     return;
@@ -47,14 +47,26 @@ export const exportToPDF = (data, columnsOrTitle = [], titleOrFilename = 'Lapora
       columns = keys.map(key => ({ header: key.toUpperCase(), dataKey: key }));
     }
 
+    let startY = 20;
+
     // Judul Dokumen
     doc.setFontSize(16);
-    doc.text(title, 14, 20);
+    doc.text(title, 14, startY);
+    startY += 7;
+
+    // Nama Perusahaan (jika ada)
+    if (companyName) {
+      doc.setFontSize(11);
+      doc.setTextColor(60);
+      doc.text(`Perusahaan: ${companyName}`, 14, startY);
+      startY += 6;
+    }
 
     // Timestamp / Waktu Cetak
-    doc.setFontSize(10);
+    doc.setFontSize(9);
     doc.setTextColor(100);
-    doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, 27);
+    doc.text(`Dicetak pada: ${new Date().toLocaleString('id-ID')}`, 14, startY);
+    startY += 6;
 
     // Format header & body untuk jspdf-autotable
     const headers = columns.map(col => col.header);
@@ -66,7 +78,7 @@ export const exportToPDF = (data, columnsOrTitle = [], titleOrFilename = 'Lapora
     autoTable(doc, {
       head: [headers],
       body: body,
-      startY: 32,
+      startY: startY + 2,
       theme: 'grid',
       headStyles: { fillColor: [234, 88, 12] }, // Warna Orange sesuai tema
       styles: { fontSize: 9, cellPadding: 4 }

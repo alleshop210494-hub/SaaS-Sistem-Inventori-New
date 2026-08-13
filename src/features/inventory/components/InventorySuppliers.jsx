@@ -3,7 +3,7 @@ import { useInventory } from '../context/InventoryContext';
 import { exportToCSV, exportToPDF } from '../../../utils/exportUtils';
 
 export const InventorySuppliers = () => {
-  const { suppliers, addSupplier, deleteSupplier } = useInventory();
+  const { suppliers, addSupplier, deleteSupplier, companyName } = useInventory(); // Tambahkan companyName di sini
   const [formData, setFormData] = useState({ name: '', contactPerson: '', phone: '', email: '', address: '' });
 
   const handleSubmit = async (e) => {
@@ -12,15 +12,14 @@ export const InventorySuppliers = () => {
     setFormData({ name: '', contactPerson: '', phone: '', email: '', address: '' });
   };
 
-  // Fungsi Export
   const getFormattedDataForExport = () => {
     return suppliers.map((s, index) => ({
       No: index + 1,
       Nama: s.name,
-      'Contact Person': s.contact_person,
-      Telepon: s.phone,
-      Email: s.email,
-      Alamat: s.address
+      'Contact Person': s.contact_person || '-',
+      Telepon: s.phone || '-',
+      Email: s.email || '-',
+      Alamat: s.address || '-'
     }));
   };
 
@@ -33,17 +32,18 @@ export const InventorySuppliers = () => {
     if (suppliers.length === 0) return alert('Tidak ada data supplier.');
     const columns = [
       { header: 'No', dataKey: 'No' },
-      { header: 'Nama', dataKey: 'Nama' },
-      { header: 'CP', dataKey: 'Contact Person' },
+      { header: 'Nama Supplier', dataKey: 'Nama' },
+      { header: 'Contact Person', dataKey: 'Contact Person' },
       { header: 'Telepon', dataKey: 'Telepon' },
-      { header: 'Email', dataKey: 'Email' }
+      { header: 'Email', dataKey: 'Email' },
+      { header: 'Alamat', dataKey: 'Alamat' }
     ];
-    exportToPDF(getFormattedDataForExport(), columns, 'Laporan Daftar Supplier', 'daftar-supplier.pdf');
+    // Masukkan companyName sebagai parameter tambahan
+    exportToPDF(getFormattedDataForExport(), columns, 'Laporan Daftar Supplier', 'daftar-supplier.pdf', companyName);
   };
 
   return (
     <div className="max-w-5xl mx-auto space-y-6">
-      {/* Header Form */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border border-orange-100 shadow-sm">
         <span className="text-[10px] font-extrabold tracking-widest text-orange-400 uppercase">Input Data</span>
         <h2 className="text-xl font-bold text-orange-950 mt-1">Tambah Supplier Baru</h2>
@@ -57,7 +57,6 @@ export const InventorySuppliers = () => {
         </form>
       </div>
 
-      {/* Daftar Supplier Card */}
       <div className="bg-white rounded-3xl border border-orange-100 shadow-sm overflow-hidden">
         <div className="p-6 border-b border-orange-50 bg-[#FAF6EE]/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div>
