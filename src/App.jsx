@@ -69,27 +69,27 @@ const MainDashboard = () => {
   ];
 
   return (
-    <div className="h-screen w-screen bg-slate-100 text-slate-900 flex overflow-hidden font-sans">
+    <div className="h-screen w-screen bg-[#FAF9F6] text-orange-950 flex overflow-hidden font-sans">
       
       {/* SIDEBAR */}
-      <aside className="hidden lg:flex w-64 bg-white border-r border-slate-200 flex-shrink-0 flex-col justify-between p-5 select-none shadow-xs">
+      <aside className="hidden lg:flex w-64 bg-[#FDFCF7] border-r border-orange-100 flex-shrink-0 flex-col justify-between p-5 select-none shadow-xs">
         <div>
           <div className="flex items-center justify-between mb-8 px-2">
             <div className="flex items-center space-x-2.5 overflow-hidden">
-              <div className="w-7 h-7 bg-slate-900 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-sm">
+              <div className="w-7 h-7 bg-orange-600 rounded-lg flex items-center justify-center text-white font-bold text-xs shadow-sm">
                 {companyName.substring(0, 1).toUpperCase()}
               </div>
-              <span className="font-bold text-sm tracking-tight text-slate-900 truncate" title={companyName}>{companyName}</span>
+              <span className="font-bold text-sm tracking-tight text-orange-950 truncate" title={companyName}>{companyName}</span>
             </div>
             <button 
               onClick={handleEditCompanyName}
-              className="text-[11px] text-slate-500 hover:text-slate-900 font-medium transition-colors"
+              className="text-[11px] text-orange-500 hover:text-orange-700 font-medium transition-colors"
             >
               Edit
             </button>
           </div>
 
-          <div className="px-2 mb-2 text-[10px] font-bold tracking-wider text-slate-400 uppercase">Menu Utama</div>
+          <div className="px-2 mb-2 text-[10px] font-bold tracking-wider text-orange-400 uppercase">Menu Utama</div>
           <nav className="space-y-1">
             {menuItems.map((item) => (
               <button
@@ -97,22 +97,22 @@ const MainDashboard = () => {
                 onClick={() => setActiveMenu(item.id)}
                 className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
                   activeMenu === item.id
-                    ? 'bg-slate-900 text-white shadow-sm'
-                    : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
+                    ? 'bg-orange-600 text-white shadow-sm'
+                    : 'text-orange-800/80 hover:bg-orange-50 hover:text-orange-950'
                 }`}
               >
-                <span className={activeMenu === item.id ? 'text-white' : 'text-slate-400'}>{item.icon}</span>
+                <span className={activeMenu === item.id ? 'text-white' : 'text-orange-400'}>{item.icon}</span>
                 <span>{item.label}</span>
               </button>
             ))}
           </nav>
         </div>
 
-        <div className="p-3 bg-slate-50 border border-slate-200/80 rounded-2xl flex items-center justify-between">
+        <div className="p-3 bg-[#FAF6EE] border border-orange-100 rounded-2xl flex items-center justify-between">
           <div className="flex items-center space-x-3 overflow-hidden">
             <UserButton afterSignOutUrl="/" />
             <div className="overflow-hidden">
-              <p className="text-xs font-bold text-slate-900 truncate">{user?.fullName || 'Administrator'}</p>
+              <p className="text-xs font-bold text-orange-950 truncate">{user?.fullName || 'Administrator'}</p>
               <p className="text-[10px] text-emerald-600 font-medium flex items-center gap-1 mt-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                 Connected
@@ -125,12 +125,12 @@ const MainDashboard = () => {
       {/* MOBILE DRAWER */}
       {isMobileMenuOpen && (
         <div className="fixed inset-0 z-50 lg:hidden flex">
-          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs" onClick={() => setIsMobileMenuOpen(false)}></div>
-          <div className="relative w-72 bg-white h-full border-r border-slate-200 flex flex-col justify-between p-5 z-10 shadow-2xl">
+          <div className="fixed inset-0 bg-orange-950/30 backdrop-blur-xs" onClick={() => setIsMobileMenuOpen(false)}></div>
+          <div className="relative w-72 bg-[#FDFCF7] h-full border-r border-orange-100 flex flex-col justify-between p-5 z-10 shadow-2xl">
             <div>
               <div className="flex items-center justify-between mb-8 px-2">
-                <span className="font-bold text-sm text-slate-900">{companyName}</span>
-                <button onClick={() => setIsMobileMenuOpen(false)} className="text-slate-500">✕</button>
+                <span className="font-bold text-sm text-orange-950">{companyName}</span>
+                <button onClick={() => setIsMobileMenuOpen(false)} className="text-orange-500">✕</button>
               </div>
               <nav className="space-y-1">
                 {menuItems.map((item) => (
@@ -138,7 +138,7 @@ const MainDashboard = () => {
                     key={item.id}
                     onClick={() => { setActiveMenu(item.id); setIsMobileMenuOpen(false); }}
                     className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-xs font-semibold ${
-                      activeMenu === item.id ? 'bg-slate-900 text-white' : 'text-slate-600'
+                      activeMenu === item.id ? 'bg-orange-600 text-white' : 'text-orange-800/80 hover:bg-orange-50'
                     }`}
                   >
                     <span>{item.icon}</span>
@@ -147,23 +147,23 @@ const MainDashboard = () => {
                 ))}
               </nav>
             </div>
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-2xl flex items-center space-x-3">
+            <div className="p-3 bg-[#FAF6EE] border border-orange-100 rounded-2xl flex items-center space-x-3">
               <UserButton afterSignOutUrl="/" />
-              <p className="text-xs font-bold text-slate-900 truncate">{user?.fullName || 'Admin'}</p>
+              <p className="text-xs font-bold text-orange-950 truncate">{user?.fullName || 'Admin'}</p>
             </div>
           </div>
         </div>
       )}
 
       {/* MAIN LAYOUT */}
-      <div className="flex-1 flex flex-col h-full overflow-y-auto bg-slate-100">
+      <div className="flex-1 flex flex-col h-full overflow-y-auto bg-[#FAF9F6]">
         
         {/* MOBILE HEADER */}
-        <header className="bg-white/80 backdrop-blur-md border-b border-slate-200 px-5 py-3.5 flex justify-between items-center lg:hidden sticky top-0 z-30">
-          <button onClick={() => setIsMobileMenuOpen(true)} className="text-slate-700">
+        <header className="bg-[#FAF9F6]/90 backdrop-blur-md border-b border-orange-100 px-5 py-3.5 flex justify-between items-center lg:hidden sticky top-0 z-30">
+          <button onClick={() => setIsMobileMenuOpen(true)} className="text-orange-700">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" /></svg>
           </button>
-          <span className="font-bold text-xs text-slate-900">{companyName}</span>
+          <span className="font-bold text-xs text-orange-950">{companyName}</span>
           <UserButton afterSignOutUrl="/" />
         </header>
 
@@ -171,12 +171,12 @@ const MainDashboard = () => {
           <div className="max-w-7xl mx-auto space-y-6">
             
             {/* HERO BANNER */}
-            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200/80 relative overflow-hidden flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-xs">
-              <div className="absolute right-0 top-0 w-64 h-64 bg-slate-100 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="bg-white p-6 sm:p-8 rounded-3xl border border-orange-100 relative overflow-hidden flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 shadow-xs">
+              <div className="absolute right-0 top-0 w-64 h-64 bg-orange-50 rounded-full blur-3xl pointer-events-none"></div>
               <div>
-                <span className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase">System Workspace</span>
-                <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight mt-1">{getPageTitle()}</h1>
-                <p className="text-xs text-slate-500 mt-0.5">Pantau dan kelola seluruh metrik inventori perusahaan secara real-time.</p>
+                <span className="text-[10px] font-extrabold tracking-widest text-orange-400 uppercase">System Workspace</span>
+                <h1 className="text-xl sm:text-2xl font-extrabold text-orange-950 tracking-tight mt-1">{getPageTitle()}</h1>
+                <p className="text-xs text-orange-600/70 mt-0.5">Pantau dan kelola seluruh metrik inventori perusahaan secara real-time.</p>
               </div>
               <div className="flex items-center space-x-2 bg-emerald-50 border border-emerald-200 text-emerald-700 px-3 py-1.5 rounded-full text-[11px] font-bold">
                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
@@ -233,19 +233,24 @@ export default function App() {
         </InventoryProvider>
       </SignedIn>
       <SignedOut>
-        <div className="h-screen w-screen flex items-center justify-center bg-slate-100 p-4">
-          <div className="bg-white p-8 rounded-3xl border border-slate-200 text-center max-w-sm w-full space-y-6 shadow-xl">
-            <div className="w-12 h-12 bg-slate-900 rounded-2xl mx-auto flex items-center justify-center text-white font-bold text-xl shadow-md">
+        <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#FAF9F6] p-4 overflow-y-auto">
+          <div className="flex items-center space-x-3 mb-6">
+            <div className="w-10 h-10 bg-orange-600 rounded-2xl flex items-center justify-center text-white font-bold text-xl shadow-md">
               I
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">CloudInventory Pro</h2>
-              <p className="text-xs text-slate-500 mt-1">Autentikasi aman berbasis Clerk</p>
-            </div>
-            <div className="flex justify-center">
-              <SignIn routing="hash" />
+            <div className="text-left">
+              <h2 className="text-lg font-bold text-orange-950">Silahkan Login</h2>
+              <p className="text-xs text-orange-600/70"></p>
             </div>
           </div>
+          <SignIn 
+            routing="hash" 
+            appearance={{
+              elements: {
+                footer: { display: "none" }
+              }
+            }}
+          />
         </div>
       </SignedOut>
     </ClerkProvider>
