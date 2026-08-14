@@ -5,7 +5,7 @@ const sql = neon(process.env.NEON_DATABASE_URL);
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST,DELETE');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,POST,PUT,DELETE');
   res.setHeader('Access-Control-Allow-Headers', 'Authorization, Content-Type');
 
   if (req.method === 'OPTIONS') {
@@ -28,6 +28,23 @@ export default async function handler(req, res) {
         RETURNING *
       `;
       return res.status(201).json({ success: true, data: result[0] });
+    }
+
+    if (req.method === 'PUT') {
+      const { id, name, sku, stock, price, supplier_id } = req.body;
+      
+      if (!id) {
+        return res.status(400).json({ success: false, message: 'ID barang diperlukan untuk memperbarui data.' });
+      }
+
+      const result = await sql`
+        UPDATE items 
+        SET name = ${name}, sku = ${sku}, stock = ${stock || 0}, price = ${price || 0}, supplier_id = ${supplier_id || null}
+        WHERE id = ${id}
+        RETURNING *
+      `;
+
+      return res.status(200).json({ success: true, data: result[0] });
     }
 
     if (req.method === 'DELETE') {
