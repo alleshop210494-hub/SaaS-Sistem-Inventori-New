@@ -18,7 +18,7 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const suppliers = await sql`SELECT * FROM suppliers ORDER BY id DESC`;
+      const suppliers = await sql.query('SELECT * FROM suppliers ORDER BY id DESC');
       return res.status(200).json({ success: true, data: suppliers });
     }
 
@@ -29,11 +29,10 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, message: 'Nama supplier wajib diisi.' });
       }
 
-      const result = await sql`
-        INSERT INTO suppliers (name, contact_person, phone, email, address) 
-        VALUES (${name}, ${contactPerson || ''}, ${phone || ''}, ${email || ''}, ${address || ''}) 
-        RETURNING *
-      `;
+      const result = await sql.query(
+        `INSERT INTO suppliers (name, contact_person, phone, email, address) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+        [name, contactPerson || '', phone || '', email || '', address || '']
+      );
 
       return res.status(201).json({ success: true, data: result[0] });
     }
@@ -44,7 +43,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, message: 'ID supplier diperlukan.' });
       }
 
-      await sql`DELETE FROM suppliers WHERE id = ${id}`;
+      await sql.query('DELETE FROM suppliers WHERE id = $1', [id]);
       return res.status(200).json({ success: true, message: 'Supplier berhasil dihapus.' });
     }
 
