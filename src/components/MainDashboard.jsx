@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useUser, UserButton } from '@clerk/clerk-react';
+import { useAuth } from '../features/auth/context/AuthContext';
 import { InventoryTable } from '../features/inventory/components/InventoryTable';
 import { InventoryForm } from '../features/inventory/components/InventoryForm';
 import { InventorySuppliers } from '../features/inventory/components/InventorySuppliers';
@@ -8,19 +8,11 @@ import { InventoryStockOpname } from '../features/inventory/components/Inventory
 import { InventoryCharts } from '../features/inventory/components/InventoryCharts';
 
 export function MainDashboard() {
-  const { isLoaded, user } = useUser() || {};
+  const { user, logout } = useAuth() || {};
   const [activeTab, setActiveTab] = useState('inventory');
   const [editingItem, setEditingItem] = useState(null);
 
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-gray-500 text-sm font-medium animate-pulse">Memuat sesi pengguna...</div>
-      </div>
-    );
-  }
-
-  const firstName = String(user?.firstName || user?.fullName || user?.username || 'User');
+  const firstName = String(user?.name || user?.email || 'User');
   const initial = firstName.length > 0 ? firstName.substring(0, 1).toUpperCase() : 'U';
 
   return (
@@ -85,7 +77,12 @@ export function MainDashboard() {
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             Synced
           </span>
-          <UserButton afterSignOutUrl="/" />
+          <button
+            onClick={logout}
+            className="text-xs text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg font-medium transition-colors"
+          >
+            Keluar
+          </button>
         </div>
       </aside>
 

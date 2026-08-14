@@ -1,26 +1,37 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
-const AuthContext = createContext();
+const AuthContext = createContext(null);
 
-export const AuthProvider = ({ children }) => {
+export function AuthProvider({ children }) {
   const [user, setUser] = useState(() => {
-    const savedUser = localStorage.getItem('inventory_logged_user');
-    return savedUser ? JSON.parse(savedUser) : null;
+    try {
+      const savedUser = localStorage.getItem('saas_user');
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch (e) {
+      return null;
+    }
   });
 
-  const login = (username, password) => {
-    if (username && password) {
-      const userData = { username };
-      setUser(userData);
-      localStorage.setItem('inventory_logged_user', JSON.stringify(userData));
-      return true;
+  const login = async (email, password) => {
+    if (!email || !password) {
+      throw new Error('Email dan kata sandi wajib diisi.');
     }
-    return false;
+    
+    // Simulasi proses login SaaS
+    const fakeUser = {
+      email,
+      name: email.split('@')[0],
+      role: 'Administrator'
+    };
+    
+    setUser(fakeUser);
+    localStorage.setItem('saas_user', JSON.stringify(fakeUser));
+    return fakeUser;
   };
 
   const logout = () => {
     setUser(null);
-    localStorage.removeItem('inventory_logged_user');
+    localStorage.removeItem('saas_user');
   };
 
   return (
@@ -28,6 +39,17 @@ export const AuthProvider = ({ children }) => {
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => useContext(AuthContext);
+export function useAuth() {
+  const context = useContext(AuthContext);
+  // Pengaman jika terpanggil di luar Provider agar tidak merusak aplikasi (tidak undefined)
+  if (!context) {
+    return {
+      user: null,
+      login: async () => {},
+      logout: () => {}
+    };
+  }
+  return context;
+}

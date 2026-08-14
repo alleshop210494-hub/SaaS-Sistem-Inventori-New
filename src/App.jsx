@@ -1,22 +1,29 @@
 import React from 'react';
-import { ClerkProvider, SignedIn, SignedOut } from '@clerk/clerk-react';
+import { AuthProvider, useAuth } from './features/auth/context/AuthContext';
 import { InventoryProvider } from './features/inventory/context/InventoryContext';
-import { MainDashboard } from './components/MainDashboard';
-import { AuthScreen } from './components/AuthScreen';
+import AuthScreen from './components/AuthScreen';
+import MainDashboard from './components/MainDashboard';
 
-const CLERK_PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+function AppContent() {
+  const { user } = useAuth();
+  const savedUser = localStorage.getItem('saas_user');
+  const activeUser = user || (savedUser ? JSON.parse(savedUser) : null);
+
+  if (!activeUser) {
+    return <AuthScreen />;
+  }
+
+  return (
+    <InventoryProvider>
+      <MainDashboard />
+    </InventoryProvider>
+  );
+}
 
 export default function App() {
   return (
-    <ClerkProvider publishableKey={CLERK_PUBLISHABLE_KEY}>
-      <SignedIn>
-        <InventoryProvider>
-          <MainDashboard />
-        </InventoryProvider>
-      </SignedIn>
-      <SignedOut>
-        <AuthScreen />
-      </SignedOut>
-    </ClerkProvider>
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
