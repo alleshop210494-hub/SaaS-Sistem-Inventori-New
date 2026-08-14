@@ -15,23 +15,24 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const items = await sql.query('SELECT * FROM items ORDER BY id DESC');
+      const items = await sql`SELECT * FROM items ORDER BY id DESC`;
       return res.status(200).json({ success: true, data: items });
     }
 
     if (req.method === 'POST') {
       const { name, sku, stock, price, supplier_id } = req.body;
       
-      const result = await sql.query(
-        `INSERT INTO items (name, sku, stock, price, supplier_id) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-        [name, sku, stock || 0, price || 0, supplier_id || null]
-      );
+      const result = await sql`
+        INSERT INTO items (name, sku, stock, price, supplier_id) 
+        VALUES (${name}, ${sku}, ${stock || 0}, ${price || 0}, ${supplier_id || null}) 
+        RETURNING *
+      `;
       return res.status(201).json({ success: true, data: result[0] });
     }
 
     if (req.method === 'DELETE') {
       const { id } = req.query;
-      await sql.query('DELETE FROM items WHERE id = $1', [id]);
+      await sql`DELETE FROM items WHERE id = ${id}`;
       return res.status(200).json({ success: true, message: 'Barang berhasil dihapus' });
     }
 

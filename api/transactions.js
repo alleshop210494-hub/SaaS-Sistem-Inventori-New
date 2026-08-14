@@ -15,22 +15,23 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const transactions = await sql.query(`
+      const transactions = await sql`
         SELECT t.*, i.name as item_name 
         FROM transactions t 
         LEFT JOIN items i ON t.item_id = i.id 
         ORDER BY t.created_at DESC
-      `);
+      `;
       return res.status(200).json({ success: true, data: transactions });
     }
 
     if (req.method === 'POST') {
       const { item_id, type, quantity } = req.body;
       
-      const result = await sql.query(
-        `INSERT INTO transactions (item_id, type, quantity, created_at) VALUES ($1, $2, $3, NOW()) RETURNING *`,
-        [item_id, type, quantity]
-      );
+      const result = await sql`
+        INSERT INTO transactions (item_id, type, quantity, created_at) 
+        VALUES (${item_id}, ${type}, ${quantity}, NOW()) 
+        RETURNING *
+      `;
 
       return res.status(201).json({ success: true, data: result[0] });
     }
