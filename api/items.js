@@ -28,17 +28,33 @@ export default async function handler(req, res) {
     if (req.method === 'PUT') {
       const { id } = req.query;
       const { name, category, sku, stock, price, supplier_id } = req.body;
+      
+      console.log('API PUT Hit - ID:', id, 'Body:', req.body);
+
+      if (!id) {
+        return res.status(400).json({ error: 'Parameter ID wajib disertakan untuk update' });
+      }
+
       const { rows } = await sql`
         UPDATE items 
-        SET name = ${name}, category = ${category}, sku = ${sku}, stock = ${stock}, price = ${price}, supplier_id = ${supplier_id || null}
+        SET name = ${name}, 
+            category = ${category}, 
+            sku = ${sku}, 
+            stock = ${stock}, 
+            price = ${price}, 
+            supplier_id = ${supplier_id || null}
         WHERE id = ${id}
         RETURNING *;
       `;
+      
       return res.status(200).json(rows[0]);
     } 
     
     if (req.method === 'DELETE') {
       const { id } = req.query;
+      if (!id) {
+        return res.status(400).json({ error: 'Parameter ID wajib disertakan untuk delete' });
+      }
       await sql`DELETE FROM items WHERE id = ${id}`;
       return res.status(200).json({ message: 'Item berhasil dihapus' });
     }

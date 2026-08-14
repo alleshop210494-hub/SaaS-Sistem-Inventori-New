@@ -40,24 +40,38 @@ export function InventoryProvider({ children }) {
       });
       if (response.ok) {
         await fetchData();
+        alert('Barang baru berhasil ditambahkan!');
+      } else {
+        const errData = await response.json();
+        alert('Gagal menambah barang: ' + (errData.error || 'Server error'));
       }
     } catch (error) {
       console.error('Gagal menambah barang:', error);
+      alert('Terjadi kesalahan koneksi saat menambah barang.');
     }
   };
 
   const updateItem = async (id, itemData) => {
     try {
+      console.log(`Mengirim request PUT ke /api/items?id=${id}`, itemData);
       const response = await fetch(`/api/items?id=${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(itemData),
       });
+      
+      const result = await response.json();
+      console.log('Respon server update:', result);
+
       if (response.ok) {
         await fetchData();
+        alert('Data barang berhasil diperbarui!');
+      } else {
+        alert('Gagal memperbarui barang: ' + (result.error || 'Kesalahan pada server'));
       }
     } catch (error) {
       console.error('Gagal memperbarui barang:', error);
+      alert('Terjadi kesalahan jaringan saat memperbarui barang.');
     }
   };
 
@@ -68,6 +82,9 @@ export function InventoryProvider({ children }) {
       });
       if (response.ok) {
         await fetchData();
+        alert('Item berhasil dihapus');
+      } else {
+        alert('Gagal menghapus item');
       }
     } catch (error) {
       console.error('Gagal menghapus barang:', error);

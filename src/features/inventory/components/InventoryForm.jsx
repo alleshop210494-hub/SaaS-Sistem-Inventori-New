@@ -31,32 +31,46 @@ export function InventoryForm({ editingItem, onCancelEdit }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    
+    if (!name.trim()) {
+      alert('Nama barang tidak boleh kosong!');
+      return;
+    }
+
+    // Membersihkan format harga jika ada koma/titik agar aman jadi angka
+    const cleanPriceString = typeof price === 'string' ? price.replace(/\./g, '').replace(',', '.') : price;
+    const parsedPrice = Number(cleanPriceString);
+    const parsedStock = Number(stock);
 
     const itemData = {
       name,
       category,
       sku,
-      stock: Number(stock) || 0,
-      price: Number(price) || 0,
+      stock: isNaN(parsedStock) ? 0 : parsedStock,
+      price: isNaN(parsedPrice) ? 0 : parsedPrice,
       supplier_id: supplierId ? Number(supplierId) : null,
     };
 
-    if (editingItem) {
-      await updateItem(editingItem.id, itemData);
-      alert('Data barang berhasil diperbarui!');
-      if (onCancelEdit) onCancelEdit();
-    } else {
-      await addItem(itemData);
-      alert('Barang baru berhasil ditambahkan!');
-    }
+    // Deteksi ID baik menggunakan .id maupun ._id
+    const itemId = editingItem?.id || editingItem?._id;
 
-    setName('');
-    setCategory('');
-    setSku('');
-    setStock('');
-    setPrice('');
-    setSupplierId('');
+    if (editingItem && itemId) {
+      console.log("Mengupdate item ID:", itemId, itemData);
+      await updateItem(itemId, itemData);
+      if (onCancelEdit) onCancelEdit();
+    } else if (editingItem && !itemId) {
+      alert('Gagal menyimpan: ID barang tidak ditemukan pada data edit ini.');
+      console.error('Editing item object missing ID:', editingItem);
+    } else {
+      console.log("Menambah item baru:", itemData);
+      await addItem(itemData);
+      setName('');
+      setCategory('');
+      setSku('');
+      setStock('');
+      setPrice('');
+      setSupplierId('');
+    }
   };
 
   return (
@@ -110,8 +124,7 @@ export function InventoryForm({ editingItem, onCancelEdit }) {
         <div>
           <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Stok</label>
           <input
-            type="number"
-            min="0"
+            type="text"
             value={stock}
             onChange={(e) => setStock(e.target.value)}
             required
@@ -122,8 +135,7 @@ export function InventoryForm({ editingItem, onCancelEdit }) {
         <div>
           <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Harga Satuan (Rp)</label>
           <input
-            type="number"
-            min="0"
+            type="text"
             value={price}
             onChange={(e) => setPrice(e.target.value)}
             required
@@ -140,7 +152,7 @@ export function InventoryForm({ editingItem, onCancelEdit }) {
           >
             <option value="">-- Pilih Supplier --</option>
             {suppliers.map((s) => (
-              <option key={s.id} value={s.id}>
+              <option key={s.id || s._id} value={s.id || s._id}>
                 {s.name}
               </option>
             ))}
