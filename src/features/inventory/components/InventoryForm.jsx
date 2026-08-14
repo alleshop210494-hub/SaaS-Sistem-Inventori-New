@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useInventory } from '../context/InventoryContext';
 
-export function InventoryForm({ editingItem, onCancelEdit }) {
-  const { addItem, updateItem, suppliers = [] } = useInventory() || {};
+export function InventoryForm({ editingItem, onCancelEdit, onSubmit, onSave }) {
+  const inventory = useInventory() || {};
+  const addItem = inventory.addItem;
+  const updateItem = inventory.updateItem;
+  const suppliers = inventory.suppliers || [];
 
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
@@ -31,13 +34,12 @@ export function InventoryForm({ editingItem, onCancelEdit }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!name.trim()) {
       alert('Nama barang tidak boleh kosong!');
       return;
     }
 
-    // Membersihkan format harga jika ada koma/titik agar aman jadi angka
     const cleanPriceString = typeof price === 'string' ? price.replace(/\./g, '').replace(',', '.') : price;
     const parsedPrice = Number(cleanPriceString);
     const parsedStock = Number(stock);
@@ -51,25 +53,37 @@ export function InventoryForm({ editingItem, onCancelEdit }) {
       supplier_id: supplierId ? Number(supplierId) : null,
     };
 
-    // Deteksi ID baik menggunakan .id maupun ._id
-    const itemId = editingItem?.id || editingItem?._id;
+    const submitFunc = onSubmit || onSave;
 
-    if (editingItem && itemId) {
-      console.log("Mengupdate item ID:", itemId, itemData);
-      await updateItem(itemId, itemData);
-      if (onCancelEdit) onCancelEdit();
-    } else if (editingItem && !itemId) {
-      alert('Gagal menyimpan: ID barang tidak ditemukan pada data edit ini.');
-      console.error('Editing item object missing ID:', editingItem);
-    } else {
-      console.log("Menambah item baru:", itemData);
-      await addItem(itemData);
-      setName('');
-      setCategory('');
-      setSku('');
-      setStock('');
-      setPrice('');
-      setSupplierId('');
+    try {
+      if (typeof submitFunc === 'function') {
+        await submitFunc(editingItem ? { ...(editingItem || {}), ...itemData } : itemData);
+      } else if (editingItem) {
+        const itemId = editingItem.id || editingItem._id;
+        if (itemId && typeof updateItem === 'function') {
+          await updateItem(itemId, itemData);
+        }
+      } else {
+        if (typeof addItem === 'function') {
+          await addItem(itemData);
+        }
+      }
+
+      if (editingItem && typeof onCancelEdit === 'function') {
+        onCancelEdit();
+      }
+
+      if (!editingItem) {
+        setName('');
+        setCategory('');
+        setSku('');
+        setStock('');
+        setPrice('');
+        setSupplierId('');
+      }
+    } catch (error) {
+      console.error('Error saat menyimpan form:', error);
+      alert('Terjadi kesalahan saat menyimpan data.');
     }
   };
 
@@ -79,7 +93,7 @@ export function InventoryForm({ editingItem, onCancelEdit }) {
         <h3 className="text-lg font-semibold text-gray-800">
           {editingItem ? 'Edit Barang Inventori' : 'Tambah Barang Baru'}
         </h3>
-        {editingItem && (
+        {editingItem && typeof onCancelEdit === 'function' && (
           <button
             type="button"
             onClick={onCancelEdit}
@@ -159,7 +173,7 @@ export function InventoryForm({ editingItem, onCancelEdit }) {
           </select>
         </div>
         <div className="md:col-span-3 flex justify-end gap-2 mt-2">
-          {editingItem && (
+          {editingItem && typeof onCancelEdit === 'function' && (
             <button
               type="button"
               onClick={onCancelEdit}
