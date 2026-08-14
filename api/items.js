@@ -20,26 +20,31 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { name, sku, stock, price, supplier_id } = req.body;
+      const { name, sku, stock, price, supplier_id, category } = req.body;
       
       const result = await sql`
-        INSERT INTO items (name, sku, stock, price, supplier_id) 
-        VALUES (${name}, ${sku}, ${stock || 0}, ${price || 0}, ${supplier_id || null}) 
+        INSERT INTO items (name, sku, stock, price, supplier_id, category) 
+        VALUES (${name}, ${sku}, ${stock || 0}, ${price || 0}, ${supplier_id || null}, ${category || ''}) 
         RETURNING *
       `;
       return res.status(201).json({ success: true, data: result[0] });
     }
 
     if (req.method === 'PUT') {
-      const { id, name, sku, stock, price, supplier_id } = req.body;
+      const { id, name, sku, stock, price, supplier_id, category } = req.body;
       
       if (!id) {
-        return res.status(400).json({ success: false, message: 'ID barang diperlukan untuk memperbarui data.' });
+        return res.status(400).json({ success: false, message: 'ID barang diperlukan.' });
       }
 
       const result = await sql`
         UPDATE items 
-        SET name = ${name}, sku = ${sku}, stock = ${stock || 0}, price = ${price || 0}, supplier_id = ${supplier_id || null}
+        SET name = ${name}, 
+            sku = ${sku}, 
+            stock = ${stock || 0}, 
+            price = ${price || 0}, 
+            supplier_id = ${supplier_id || null},
+            category = ${category || ''}
         WHERE id = ${id}
         RETURNING *
       `;
