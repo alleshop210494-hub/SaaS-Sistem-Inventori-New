@@ -1,7 +1,9 @@
 import { neon } from '@neondatabase/serverless';
 
+// Inisialisasi di luar fungsi agar optimal dan tidak error
+const sql = neon(process.env.NEON_DATABASE_URL);
+
 export default async function handler(req, res) {
-  // Atur Header CORS agar frontend bisa mengakses API ini
   res.setHeader('Access-Control-Allow-Credentials', true);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
@@ -16,9 +18,6 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Koneksi ke Neon menggunakan variabel server (TANPA awalan VITE_)
-    const sql = neon(process.env.NEON_DATABASE_URL);
-
     if (req.method === 'GET') {
       const suppliers = await sql('SELECT * FROM suppliers ORDER BY id DESC');
       return res.status(200).json({ success: true, data: suppliers });
@@ -52,6 +51,6 @@ export default async function handler(req, res) {
     return res.status(405).json({ success: false, message: 'Metode tidak diizinkan.' });
   } catch (error) {
     console.error('Database Error:', error);
-    return res.status(500).json({ success: false, message: 'Terjadi kesalahan pada server.' });
+    return res.status(500).json({ success: false, message: error.message || 'Terjadi kesalahan pada server.' });
   }
 }
