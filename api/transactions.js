@@ -15,7 +15,7 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const transactions = await sql(`
+      const transactions = await sql.query(`
         SELECT t.*, i.name as item_name 
         FROM transactions t 
         LEFT JOIN items i ON t.item_id = i.id 
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const { item_id, type, quantity } = req.body;
       
-      const result = await sql(
+      const result = await sql.query(
         `INSERT INTO transactions (item_id, type, quantity, created_at) VALUES ($1, $2, $3, NOW()) RETURNING *`,
         [item_id, type, quantity]
       );
