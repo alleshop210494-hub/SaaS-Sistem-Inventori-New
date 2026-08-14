@@ -1,193 +1,99 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useAuth } from '@clerk/clerk-react';
 
 const InventoryContext = createContext();
 
-export const InventoryProvider = ({ children }) => {
-  const { getToken } = useAuth();
-  const [suppliers, setSuppliers] = useState([]);
+export function InventoryProvider({ children }) {
   const [items, setItems] = useState([]);
+  const [suppliers, setSuppliers] = useState([]);
   const [transactions, setTransactions] = useState([]);
-  const [companyName, setCompanyName] = useState('Perusahaan Saya');
   const [loading, setLoading] = useState(true);
 
-  // --- SUPPLIERS API ---
-  const fetchSuppliers = async () => {
+  const fetchData = async () => {
     try {
-      const token = await getToken();
-      const response = await fetch('/api/suppliers', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const result = await response.json();
-      if (result.success) {
-        setSuppliers(result.data);
-      }
+      setLoading(true);
+      const [resItems, resSuppliers, resTransactions] = await Promise.all([
+        fetch('/api/items').then(res => res.json()),
+        fetch('/api/suppliers').then(res => res.json()).catch(() => []),
+        fetch('/api/transactions').then(res => res.json()).catch(() => [])
+      ]);
+
+      setItems(Array.isArray(resItems) ? resItems : resItems.items || []);
+      setSuppliers(Array.isArray(resSuppliers) ? resSuppliers : resSuppliers.suppliers || []);
+      setTransactions(Array.isArray(resTransactions) ? resTransactions : resTransactions.transactions || []);
     } catch (error) {
-      console.error('Gagal mengambil data supplier:', error);
+      console.error('Gagal mengambil data inventori:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const addSupplier = async (formData) => {
-    try {
-      const token = await getToken();
-      const response = await fetch('/api/suppliers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-      const result = await response.json();
-      if (result.success) {
-        setSuppliers(prev => [result.data, ...prev]);
-      } else {
-        alert(result.message);
-      }
-    } catch (error) {
-      console.error('Gagal menyimpan supplier:', error);
-    }
-  };
-
-  const deleteSupplier = async (id) => {
-    try {
-      const token = await getToken();
-      const response = await fetch(`/api/suppliers?id=${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const result = await response.json();
-      if (result.success) {
-        setSuppliers(prev => prev.filter(s => s.id !== id));
-      }
-    } catch (error) {
-      console.error('Gagal menghapus supplier:', error);
-    }
-  };
-
-  // --- ITEMS API ---
-  const fetchItems = async () => {
-    try {
-      const token = await getToken();
-      const response = await fetch('/api/items', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const result = await response.json();
-      if (result.success) {
-        setItems(result.data);
-      }
-    } catch (error) {
-      console.error('Gagal mengambil data barang:', error);
-    }
-  };
+  useEffect(() => {
+    fetchData();
+  }, []);
 
   const addItem = async (itemData) => {
     try {
-      const token = await getToken();
       const response = await fetch('/api/items', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(itemData)
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(itemData),
       });
-      const result = await response.json();
-      if (result.success) {
-        setItems(prev => [result.data, ...prev]);
-      } else {
-        alert(result.message);
+      if (response.ok) {
+        await fetchData();
       }
     } catch (error) {
-      console.error('Gagal menyimpan barang:', error);
+      console.error('Gagal menambah barang:', error);
+    }
+  };
+
+  const updateItem = async (id, itemData) => {
+    try {
+      const response = await fetch(`/api/items?id=${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(itemData),
+      });
+      if (response.ok) {
+        await fetchData();
+      }
+    } catch (error) {
+      console.error('Gagal memperbarui barang:', error);
     }
   };
 
   const deleteItem = async (id) => {
     try {
-      const token = await getToken();
       const response = await fetch(`/api/items?id=${id}`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
       });
-      const result = await response.json();
-      if (result.success) {
-        setItems(prev => prev.filter(i => i.id !== id));
+      if (response.ok) {
+        await fetchData();
       }
     } catch (error) {
       console.error('Gagal menghapus barang:', error);
     }
   };
 
-  // --- TRANSACTIONS API ---
-  const fetchTransactions = async () => {
-    try {
-      const token = await getToken();
-      const response = await fetch('/api/transactions', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const result = await response.json();
-      if (result.success) {
-        setTransactions(result.data);
-      }
-    } catch (error) {
-      console.error('Gagal mengambil data transaksi:', error);
-    }
-  };
-
-  const addTransaction = async (transData) => {
-    try {
-      const token = await getToken();
-      const response = await fetch('/api/transactions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify(transData)
-      });
-      const result = await response.json();
-      if (result.success) {
-        setTransactions(prev => [result.data, ...prev]);
-      } else {
-        alert(result.message);
-      }
-    } catch (error) {
-      console.error('Gagal menyimpan transaksi:', error);
-    }
-  };
-
-  // Load all data on mount
-  useEffect(() => {
-    const loadAll = async () => {
-      setLoading(true);
-      await Promise.all([
-        fetchSuppliers(),
-        fetchItems(),
-        fetchTransactions()
-      ]);
-      setLoading(false);
-    };
-    loadAll();
-  }, []);
-
   return (
-    <InventoryContext.Provider value={{
-      suppliers,
-      addSupplier,
-      deleteSupplier,
-      items,
-      addItem,
-      deleteItem,
-      transactions,
-      addTransaction,
-      companyName,
-      setCompanyName,
-      loading
-    }}>
+    <InventoryContext.Provider
+      value={{
+        items,
+        suppliers,
+        transactions,
+        loading,
+        addItem,
+        updateItem,
+        deleteItem,
+        refreshData: fetchData,
+      }}
+    >
       {children}
     </InventoryContext.Provider>
   );
-};
+}
 
-export const useInventory = () => useContext(InventoryContext);
+export function useInventory() {
+  return useContext(InventoryContext);
+}
+
+export default InventoryContext;

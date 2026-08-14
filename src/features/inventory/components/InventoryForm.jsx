@@ -1,116 +1,171 @@
 import React, { useState, useEffect } from 'react';
 import { useInventory } from '../context/InventoryContext';
 
-export const InventoryForm = ({ currentItem, clearCurrentItem }) => {
-  const { addItem, updateItem } = useInventory();
-  const [formData, setFormData] = useState({ name: '', category: '', stock: '', price: '' });
+export function InventoryForm({ editingItem, onCancelEdit }) {
+  const { addItem, updateItem, suppliers = [] } = useInventory() || {};
+
+  const [name, setName] = useState('');
+  const [category, setCategory] = useState('');
+  const [sku, setSku] = useState('');
+  const [stock, setStock] = useState('');
+  const [price, setPrice] = useState('');
+  const [supplierId, setSupplierId] = useState('');
 
   useEffect(() => {
-    if (currentItem) {
-      setFormData(currentItem);
+    if (editingItem) {
+      setName(editingItem.name || '');
+      setCategory(editingItem.category || '');
+      setSku(editingItem.sku || '');
+      setStock(editingItem.stock !== undefined ? editingItem.stock : '');
+      setPrice(editingItem.price !== undefined ? editingItem.price : '');
+      setSupplierId(editingItem.supplier_id || '');
     } else {
-      setFormData({ name: '', category: '', stock: '', price: '' });
+      setName('');
+      setCategory('');
+      setSku('');
+      setStock('');
+      setPrice('');
+      setSupplierId('');
     }
-  }, [currentItem]);
+  }, [editingItem]);
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!formData.name || !formData.category || formData.stock === '' || formData.price === '') return;
+    if (!name.trim()) return;
 
-    if (currentItem) {
-      updateItem(currentItem.id, {
-        ...formData,
-        stock: Number(formData.stock),
-        price: Number(formData.price)
-      });
-      clearCurrentItem();
+    const itemData = {
+      name,
+      category,
+      sku,
+      stock: Number(stock) || 0,
+      price: Number(price) || 0,
+      supplier_id: supplierId ? Number(supplierId) : null,
+    };
+
+    if (editingItem) {
+      await updateItem(editingItem.id, itemData);
+      alert('Data barang berhasil diperbarui!');
+      if (onCancelEdit) onCancelEdit();
     } else {
-      addItem({
-        ...formData,
-        stock: Number(formData.stock),
-        price: Number(formData.price)
-      });
+      await addItem(itemData);
+      alert('Barang baru berhasil ditambahkan!');
     }
-    setFormData({ name: '', category: '', stock: '', price: '' });
+
+    setName('');
+    setCategory('');
+    setSku('');
+    setStock('');
+    setPrice('');
+    setSupplierId('');
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-md p-6">
-      <h3 className="text-sm font-bold text-slate-900 mb-4">
-        {currentItem ? 'Edit Barang Inventori' : 'Tambah Barang Baru'}
-      </h3>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div>
-          <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Nama Barang</label>
-          <input
-            type="text"
-            name="name"
-            value={formData.name}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-slate-900 outline-none text-slate-900 text-xs font-medium bg-white"
-            placeholder="Contoh: Laptop"
-          />
-        </div>
-        <div>
-          <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Kategori</label>
-          <input
-            type="text"
-            name="category"
-            value={formData.category}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-slate-900 outline-none text-slate-900 text-xs font-medium bg-white"
-            placeholder="Contoh: Elektronik"
-          />
-        </div>
-        <div>
-          <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Stok</label>
-          <input
-            type="number"
-            name="stock"
-            value={formData.stock}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-slate-900 outline-none text-slate-900 text-xs font-mono bg-white"
-            placeholder="0"
-          />
-        </div>
-        <div>
-          <label className="block text-[11px] font-bold text-slate-500 mb-1.5 uppercase tracking-wider">Harga (IDR)</label>
-          <input
-            type="number"
-            name="price"
-            value={formData.price}
-            onChange={handleChange}
-            required
-            className="w-full px-3 py-2 border border-slate-300 rounded focus:ring-1 focus:ring-slate-900 outline-none text-slate-900 text-xs font-mono bg-white"
-            placeholder="0"
-          />
-        </div>
-      </div>
-      <div className="mt-5 flex justify-end space-x-2">
-        {currentItem && (
+    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-lg font-semibold text-gray-800">
+          {editingItem ? 'Edit Barang Inventori' : 'Tambah Barang Baru'}
+        </h3>
+        {editingItem && (
           <button
             type="button"
-            onClick={() => { clearCurrentItem(); setFormData({ name: '', category: '', stock: '', price: '' }); }}
-            className="bg-white border border-slate-300 text-slate-700 px-4 py-2 rounded text-xs font-medium hover:bg-slate-50"
+            onClick={onCancelEdit}
+            className="text-xs text-red-600 hover:underline font-medium"
           >
-            Batal
+            Batal Edit
           </button>
         )}
-        <button
-          type="submit"
-          className="bg-slate-900 text-white px-4 py-2 rounded text-xs font-medium hover:bg-slate-800"
-        >
-          {currentItem ? 'Simpan Perubahan' : 'Tambah Barang'}
-        </button>
       </div>
-    </form>
+      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div>
+          <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Nama Barang</label>
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            placeholder="Contoh: Laptop Asus ROG"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Kategori</label>
+          <input
+            type="text"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+            placeholder="Contoh: Electronic"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 uppercase mb-1">SKU / Kode Barang</label>
+          <input
+            type="text"
+            value={sku}
+            onChange={(e) => setSku(e.target.value)}
+            placeholder="Contoh: SKU-001"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Stok</label>
+          <input
+            type="number"
+            min="0"
+            value={stock}
+            onChange={(e) => setStock(e.target.value)}
+            required
+            placeholder="0"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Harga Satuan (Rp)</label>
+          <input
+            type="number"
+            min="0"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            required
+            placeholder="0"
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+          />
+        </div>
+        <div>
+          <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Supplier</label>
+          <select
+            value={supplierId}
+            onChange={(e) => setSupplierId(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+          >
+            <option value="">-- Pilih Supplier --</option>
+            {suppliers.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div className="md:col-span-3 flex justify-end gap-2 mt-2">
+          {editingItem && (
+            <button
+              type="button"
+              onClick={onCancelEdit}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+            >
+              Batal
+            </button>
+          )}
+          <button
+            type="submit"
+            className="px-5 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-md"
+          >
+            {editingItem ? 'Simpan Perubahan' : 'Tambah Barang'}
+          </button>
+        </div>
+      </form>
+    </div>
   );
-};
+}
+
+export default InventoryForm;
