@@ -1,105 +1,187 @@
 import React, { useState } from 'react';
 import { useInventory } from '../context/InventoryContext';
-import { exportToCSV, exportToPDF } from '../../../utils/exportUtils';
 
-export const InventorySuppliers = () => {
-  const { suppliers, addSupplier, deleteSupplier, companyName } = useInventory(); // Tambahkan companyName di sini
-  const [formData, setFormData] = useState({ name: '', contactPerson: '', phone: '', email: '', address: '' });
+export function InventorySuppliers() {
+  const { suppliers = [], addSupplier, updateSupplier, deleteSupplier } = useInventory() || {};
 
-  const handleSubmit = async (e) => {
+  const [name, setName] = useState('');
+  const [contact, setContact] = useState('');
+  const [email, setEmail] = useState('');
+  const [address, setAddress] = useState('');
+  const [editingId, setEditingId] = useState(null);
+
+  const handleSubmit = (e) => {
     e.preventDefault();
-    
-    // Sanitasi & Trim seluruh input form
-    const sanitizedData = {
-      name: formData.name.trim(),
-      contactPerson: formData.contactPerson.trim(),
-      phone: formData.phone.trim().replace(/[^0-9+\-\s()]/g, ''), // Hanya izinkan karakter nomor telepon valid
-      email: formData.email.trim().toLowerCase(),
-      address: formData.address.trim()
-    };
-
-    if (!sanitizedData.name) {
-      alert("Nama supplier tidak boleh kosong.");
+    if (!name.trim()) {
+      alert('Nama supplier tidak boleh kosong!');
       return;
     }
 
-    await addSupplier(sanitizedData);
-    setFormData({ name: '', contactPerson: '', phone: '', email: '', address: '' });
+    if (editingId) {
+      updateSupplier(editingId, { name, contact, email, address });
+      setEditingId(null);
+    } else {
+      addSupplier({ name, contact, email, address });
+    }
+
+    setName('');
+    setContact('');
+    setEmail('');
+    setAddress('');
   };
 
-  const getFormattedDataForExport = () => {
-    return suppliers.map((s, index) => ({
-      No: index + 1,
-      Nama: s.name,
-      'Contact Person': s.contact_person || '-',
-      Telepon: s.phone || '-',
-      Email: s.email || '-',
-      Alamat: s.address || '-'
-    }));
+  const handleEdit = (supplier) => {
+    setEditingId(supplier.id || supplier._id);
+    setName(supplier.name || '');
+    setContact(supplier.contact || '');
+    setEmail(supplier.email || '');
+    setAddress(supplier.address || '');
   };
 
-  const handleExportExcel = () => {
-    if (suppliers.length === 0) return alert('Tidak ada data supplier.');
-    exportToCSV(getFormattedDataForExport(), 'daftar-supplier.csv');
-  };
-
-  const handleExportPDF = () => {
-    if (suppliers.length === 0) return alert('Tidak ada data supplier.');
-    const columns = [
-      { header: 'No', dataKey: 'No' },
-      { header: 'Nama Supplier', dataKey: 'Nama' },
-      { header: 'Contact Person', dataKey: 'Contact Person' },
-      { header: 'Telepon', dataKey: 'Telepon' },
-      { header: 'Email', dataKey: 'Email' },
-      { header: 'Alamat', dataKey: 'Alamat' }
-    ];
-    // Masukkan companyName sebagai parameter tambahan
-    exportToPDF(getFormattedDataForExport(), columns, 'Laporan Daftar Supplier', 'daftar-supplier.pdf', companyName);
+  const handleDelete = (id) => {
+    if (window.confirm('Yakin ingin menghapus supplier ini?')) {
+      deleteSupplier(id);
+    }
   };
 
   return (
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-orange-100 shadow-sm">
-        <span className="text-[10px] font-extrabold tracking-widest text-orange-400 uppercase">Input Data</span>
-        <h2 className="text-xl font-bold text-orange-950 mt-1">Tambah Supplier Baru</h2>
-        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-          <input className="p-3 border border-orange-100 rounded-xl text-xs focus:ring-2 focus:ring-orange-200" placeholder="Nama Perusahaan/Supplier" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} required />
-          <input className="p-3 border border-orange-100 rounded-xl text-xs" placeholder="Contact Person" value={formData.contactPerson} onChange={e => setFormData({...formData, contactPerson: e.target.value})} />
-          <input className="p-3 border border-orange-100 rounded-xl text-xs" placeholder="Telepon" value={formData.phone} onChange={e => setFormData({...formData, phone: e.target.value})} />
-          <input className="p-3 border border-orange-100 rounded-xl text-xs" placeholder="Email" value={formData.email} onChange={e => setFormData({...formData, email: e.target.value})} />
-          <input className="p-3 border border-orange-100 rounded-xl text-xs md:col-span-2" placeholder="Alamat Lengkap" value={formData.address} onChange={e => setFormData({...formData, address: e.target.value})} />
-          <button className="bg-orange-600 hover:bg-orange-700 text-white p-3 rounded-xl font-bold text-xs md:col-span-2 transition-colors">Simpan Supplier</button>
+    <div className="space-y-6">
+      <div className="bg-gradient-to-r from-slate-900 to-slate-800 text-white p-6 rounded-2xl shadow-lg">
+        <h2 className="text-xl font-bold tracking-wide">Kelola Supplier & Mitra</h2>
+        <p className="text-xs text-slate-300 mt-1">Tambah, ubah, dan pantau daftar supplier atau vendor perusahaan Anda.</p>
+      </div>
+
+      {/* Form Supplier */}
+      <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+        <h3 className="text-lg font-semibold text-gray-800 mb-4">
+          {editingId ? 'Edit Data Supplier' : 'Tambah Supplier Baru'}
+        </h3>
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Nama Supplier / Mitra</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              placeholder="Contoh: PT Sumber Makmur"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase mb-1">No. Telepon / Kontak</label>
+            <input
+              type="text"
+              value={contact}
+              onChange={(e) => setContact(e.target.value)}
+              placeholder="Contoh: 08123456789"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Contoh: info@supplier.com"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Alamat</label>
+            <input
+              type="text"
+              value={address}
+              onChange={(e) => setAddress(e.target.value)}
+              placeholder="Contoh: Jl. Raya Industri No. 10"
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+            />
+          </div>
+          <div className="md:col-span-2 flex justify-end gap-2 mt-2">
+            {editingId && (
+              <button
+                type="button"
+                onClick={() => {
+                  setEditingId(null);
+                  setName('');
+                  setContact('');
+                  setEmail('');
+                  setAddress('');
+                }}
+                className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+              >
+                Batal
+              </button>
+            )}
+            <button
+              type="submit"
+              className="px-5 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-md"
+            >
+              {editingId ? 'Simpan Perubahan' : 'Tambah Supplier'}
+            </button>
+          </div>
         </form>
       </div>
 
-      <div className="bg-white rounded-3xl border border-orange-100 shadow-sm overflow-hidden">
-        <div className="p-6 border-b border-orange-50 bg-[#FAF6EE]/50 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h3 className="text-xs font-bold text-orange-950 uppercase tracking-wider">Daftar Supplier</h3>
-            <span className="text-[11px] text-orange-500 font-semibold mt-0.5 block">Total: {suppliers.length} Supplier</span>
-          </div>
-          <div className="flex items-center space-x-3">
-            <button onClick={handleExportExcel} className="px-4 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition-colors shadow-xs">Export Excel</button>
-            <button onClick={handleExportPDF} className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 rounded-xl text-xs font-bold transition-colors shadow-xs">Export PDF</button>
-          </div>
+      {/* Tabel Supplier */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        <div className="p-6 border-b border-gray-100">
+          <h3 className="text-lg font-semibold text-gray-800">Daftar Supplier</h3>
         </div>
-
-        <div className="divide-y divide-orange-50">
-          {suppliers.length === 0 ? (
-            <div className="p-12 text-center text-orange-400 text-xs">Belum ada data supplier.</div>
-          ) : (
-            suppliers.map(s => (
-              <div key={s.id} className="p-5 flex justify-between items-center hover:bg-orange-50/40 transition-colors">
-                <div>
-                  <p className="text-xs font-bold text-orange-950">{s.name}</p>
-                  <p className="text-[10px] text-orange-600/70">{s.contact_person} • {s.phone}</p>
-                </div>
-                <button onClick={() => {if(confirm('Hapus supplier ini?')) deleteSupplier(s.id)}} className="text-[10px] font-bold text-rose-600 hover:text-rose-800">Hapus</button>
-              </div>
-            ))
-          )}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider border-b border-gray-100">
+                <th className="py-3 px-6 font-medium">Nama Supplier</th>
+                <th className="py-3 px-6 font-medium">Kontak</th>
+                <th className="py-3 px-6 font-medium">Email</th>
+                <th className="py-3 px-6 font-medium">Alamat</th>
+                <th className="py-3 px-6 font-medium text-right">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
+              {suppliers.length === 0 ? (
+                <tr>
+                  <td colSpan="5" className="py-8 text-center text-gray-400">
+                    Belum ada data supplier terdaftar.
+                  </td>
+                </tr>
+              ) : (
+                suppliers.map((sup) => {
+                  const id = sup.id || sup._id;
+                  return (
+                    <tr key={id || Math.random()} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="py-4 px-6 font-medium text-gray-900">{sup.name}</td>
+                      <td className="py-4 px-6 text-gray-600">{sup.contact || '-'}</td>
+                      <td className="py-4 px-6 text-gray-600">{sup.email || '-'}</td>
+                      <td className="py-4 px-6 text-gray-600">{sup.address || '-'}</td>
+                      <td className="py-4 px-6 text-right space-x-2">
+                        <button
+                          type="button"
+                          onClick={() => handleEdit(sup)}
+                          className="text-blue-600 hover:text-blue-800 font-medium text-xs px-2.5 py-1 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(id)}
+                          className="text-red-600 hover:text-red-800 font-medium text-xs px-2.5 py-1 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+                        >
+                          Hapus
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
   );
-};
+}
+
+export default InventorySuppliers;
