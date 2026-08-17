@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useInventory } from '../context/InventoryContext';
 
 export function InventoryStockOpname() {
-  const { items = [] } = useInventory() || {};
+  const { items = [], companyName = 'Perusahaan Saya' } = useInventory() || {};
   const [opnameData, setOpnameData] = useState(() => 
     items.map(item => ({
       id: item.id || item._id,
@@ -76,7 +76,7 @@ export function InventoryStockOpname() {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Laporan Stock Opname</title>
+        <title>Laporan Stock Opname - ${companyName}</title>
         <style>
           body { font-family: Arial, sans-serif; color: #1e293b; margin: 30px; }
           .header { text-align: center; margin-bottom: 25px; border-bottom: 3px solid #0f172a; padding-bottom: 15px; }
@@ -94,7 +94,7 @@ export function InventoryStockOpname() {
       </head>
       <body>
         <div class="header">
-          <h1>PT. Perusahaan Saya</h1>
+          <h1>${companyName}</h1>
           <p>Laporan Resmi Stock Opname & Audit Fisik Inventori</p>
         </div>
         <div class="meta">

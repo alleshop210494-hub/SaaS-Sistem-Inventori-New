@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useInventory } from '../context/InventoryContext';
 
 export function InventoryTable({ onEdit }) {
-  const { items = [], deleteItem } = useInventory() || {};
+  const { items = [], companyName = 'Perusahaan Saya', deleteItem } = useInventory() || {};
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
 
@@ -65,7 +65,7 @@ export function InventoryTable({ onEdit }) {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Laporan Manajemen Barang</title>
+        <title>Laporan Manajemen Barang - ${companyName}</title>
         <style>
           body { font-family: Arial, sans-serif; color: #1e293b; margin: 30px; }
           .header { text-align: center; margin-bottom: 25px; border-bottom: 3px solid #0f172a; padding-bottom: 15px; }
@@ -83,7 +83,7 @@ export function InventoryTable({ onEdit }) {
       </head>
       <body>
         <div class="header">
-          <h1>PT. Perusahaan Saya</h1>
+          <h1>${companyName}</h1>
           <p>Laporan Resmi Manajemen Barang & Inventori Perusahaan</p>
         </div>
         <div class="meta">

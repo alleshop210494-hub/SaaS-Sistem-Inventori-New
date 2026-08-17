@@ -6,9 +6,16 @@ export function InventoryProvider({ children }) {
   const [items, setItems] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [companyName, setCompanyName] = useState('Perusahaan Saya');
   const [loading, setLoading] = useState(true);
 
   const loadInitialData = () => {
+    // Load Company Name
+    const savedCompanyName = localStorage.getItem('inventory_company_name');
+    if (savedCompanyName) {
+      setCompanyName(savedCompanyName);
+    }
+
     // Load Items
     const savedItems = localStorage.getItem('inventory_items');
     if (savedItems) {
@@ -77,6 +84,11 @@ export function InventoryProvider({ children }) {
     }
 
     setLoading(false);
+  };
+
+  const handleSetCompanyName = (name) => {
+    setCompanyName(name);
+    localStorage.setItem('inventory_company_name', name);
   };
 
   const addTransaction = (type, desc) => {
@@ -221,6 +233,8 @@ export function InventoryProvider({ children }) {
         items,
         suppliers,
         transactions,
+        companyName,
+        setCompanyName: handleSetCompanyName,
         loading,
         addItem,
         updateItem,

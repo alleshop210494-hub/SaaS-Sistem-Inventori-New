@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../features/auth/context/AuthContext';
+import { useInventory } from '../features/inventory/context/InventoryContext';
 import { InventoryTable } from '../features/inventory/components/InventoryTable';
 import { InventoryForm } from '../features/inventory/components/InventoryForm';
 import { InventorySuppliers } from '../features/inventory/components/InventorySuppliers';
@@ -9,6 +10,7 @@ import { InventoryCharts } from '../features/inventory/components/InventoryChart
 
 export function MainDashboard() {
   const { user, logout } = useAuth() || {};
+  const { companyName = 'Perusahaan Saya' } = useInventory() || {};
   const [activeTab, setActiveTab] = useState('inventory');
   const [editingItem, setEditingItem] = useState(null);
 
@@ -17,15 +19,15 @@ export function MainDashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar Navigation */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col shrink-0">
+      {/* Sidebar Navigation - Ditambahkan h-screen sticky top-0 agar tetap di tempat */}
+      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col shrink-0 h-screen sticky top-0">
         <div className="p-6 border-b border-gray-100 flex items-center space-x-3">
           <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-lg shadow-sm">
             {initial}
           </div>
           <div className="overflow-hidden">
-            <h1 className="text-sm font-bold text-gray-800 truncate">Perusahaan Saya</h1>
-            <p className="text-xs text-gray-400 truncate">Halo, {firstName}</p>
+            <h1 className="text-sm font-bold text-gray-800 truncate">{companyName}</h1>
+            <p className="text-xs text-gray-400 truncate">{firstName}</p>
           </div>
         </div>
 
@@ -78,8 +80,9 @@ export function MainDashboard() {
             Synced
           </span>
           <button
+            type="button"
             onClick={logout}
-            className="text-xs text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg font-medium transition-colors"
+            className="text-xs text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-lg font-medium transition-colors cursor-pointer"
           >
             Keluar
           </button>

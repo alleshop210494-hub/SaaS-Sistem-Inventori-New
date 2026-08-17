@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useInventory } from '../context/InventoryContext';
 
 export function InventorySuppliers() {
-  const { suppliers = [], addSupplier, updateSupplier, deleteSupplier } = useInventory() || {};
+  const { suppliers = [], companyName = 'Perusahaan Saya', addSupplier, updateSupplier, deleteSupplier } = useInventory() || {};
 
   const [name, setName] = useState('');
   const [contact, setContact] = useState('');
@@ -90,7 +90,7 @@ export function InventorySuppliers() {
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Laporan Data Supplier & Mitra</title>
+        <title>Laporan Data Supplier & Mitra - ${companyName}</title>
         <style>
           body { font-family: Arial, sans-serif; color: #1e293b; margin: 30px; }
           .header { text-align: center; margin-bottom: 25px; border-bottom: 3px solid #0f172a; padding-bottom: 15px; }
@@ -108,7 +108,7 @@ export function InventorySuppliers() {
       </head>
       <body>
         <div class="header">
-          <h1>PT. Perusahaan Saya</h1>
+          <h1>${companyName}</h1>
           <p>Laporan Resmi Daftar Supplier & Mitra Perusahaan</p>
         </div>
         <div class="meta">
