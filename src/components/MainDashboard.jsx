@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../features/auth/context/AuthContext';
 import { useInventory } from '../features/inventory/context/InventoryContext';
 import { InventoryTable } from '../features/inventory/components/InventoryTable';
@@ -10,23 +10,63 @@ import { InventoryCharts } from '../features/inventory/components/InventoryChart
 
 export function MainDashboard() {
   const { user, logout } = useAuth() || {};
-  const { companyName = 'Perusahaan Saya' } = useInventory() || {};
+  const { companyName, setCompanyName } = useInventory() || {};
   const [activeTab, setActiveTab] = useState('inventory');
   const [editingItem, setEditingItem] = useState(null);
+  
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [tempName, setTempName] = useState(companyName || 'PT Antariksa');
+  const inputRef = useRef(null);
 
   const firstName = String(user?.name || user?.email || 'User');
   const initial = firstName.length > 0 ? firstName.substring(0, 1).toUpperCase() : 'U';
 
+  const handleSaveName = () => {
+    if (setCompanyName) {
+      setCompanyName(tempName);
+    }
+    setIsEditingName(false);
+  };
+
+  useEffect(() => {
+    if (isEditingName && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isEditingName]);
+
+  useEffect(() => {
+    if (companyName) {
+      setTempName(companyName);
+    }
+  }, [companyName]);
+
   return (
-    <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar Navigation - Ditambahkan h-screen sticky top-0 agar tetap di tempat */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col shrink-0 h-screen sticky top-0">
-        <div className="p-6 border-b border-gray-100 flex items-center space-x-3">
+    <div className="h-screen w-screen overflow-hidden bg-gray-50 flex">
+      <aside className="w-64 bg-white border-r border-gray-200 flex flex-col h-screen sticky top-0 shrink-0">
+        <div className="p-6 border-b border-gray-100 flex items-center space-x-3 shrink-0">
           <div className="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-lg shadow-sm">
             {initial}
           </div>
-          <div className="overflow-hidden">
-            <h1 className="text-sm font-bold text-gray-800 truncate">{companyName}</h1>
+          <div className="overflow-hidden w-full">
+            {isEditingName ? (
+              <input
+                ref={inputRef}
+                type="text"
+                value={tempName}
+                onChange={(e) => setTempName(e.target.value)}
+                onBlur={handleSaveName}
+                onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
+                className="w-full text-sm font-bold text-gray-800 bg-gray-50 border border-slate-300 rounded px-1 outline-none focus:border-slate-900"
+              />
+            ) : (
+              <h1 
+                onClick={() => { setIsEditingName(true); setTempName(companyName || 'PT Antariksa'); }}
+                className="text-sm font-bold text-gray-800 truncate cursor-pointer hover:text-slate-600 transition-colors"
+                title="Klik untuk mengubah nama"
+              >
+                {companyName || 'PT Antariksa'}
+              </h1>
+            )}
             <p className="text-xs text-gray-400 truncate">{firstName}</p>
           </div>
         </div>
@@ -74,7 +114,7 @@ export function MainDashboard() {
           </button>
         </nav>
 
-        <div className="p-4 border-t border-gray-100 flex items-center justify-between">
+        <div className="p-4 border-t border-gray-100 flex items-center justify-between shrink-0 bg-white">
           <span className="text-xs bg-emerald-50 text-emerald-600 px-2.5 py-1 rounded-full font-medium border border-emerald-100 flex items-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
             Synced
@@ -89,9 +129,8 @@ export function MainDashboard() {
         </div>
       </aside>
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-        <header className="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center shadow-xs">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-y-auto">
+        <header className="bg-white border-b border-gray-200 px-8 py-4 flex justify-between items-center shadow-xs shrink-0">
           <h2 className="text-lg font-bold text-gray-800 capitalize">
             {activeTab === 'inventory' && 'Manajemen Barang'}
             {activeTab === 'suppliers' && 'Supplier & Mitra'}
