@@ -6,7 +6,7 @@ export function InventoryProvider({ children }) {
   const [items, setItems] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [transactions, setTransactions] = useState([]);
-  const [companyName, setCompanyName] = useState('Perusahaan Saya');
+  const [companyName, setCompanyName] = useState('PT Antariksa');
   const [loading, setLoading] = useState(true);
 
   const loadInitialData = () => {
