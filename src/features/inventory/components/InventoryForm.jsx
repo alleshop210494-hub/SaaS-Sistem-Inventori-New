@@ -47,12 +47,15 @@ export function InventoryForm({ editingItem, onCancelEdit, onSubmit, onSave }) {
     const parsedPrice = Number(cleanPriceString);
     const parsedStock = Number(stock);
 
-    // Ambil email dan ID pengguna dengan prioritas: Clerk -> LocalStorage -> Email Login Anda
+    // Fungsi helper untuk mendapatkan email dan ID user yang sedang login secara konsisten
     let userEmail = 'alleshop210494@gmail.com';
     let userId = 'user-alleshop';
 
     if (user) {
-      const clerkEmail = user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || user?.username;
+      const clerkEmail = 
+        user?.primaryEmailAddress?.emailAddress || 
+        user?.emailAddresses?.[0]?.emailAddress || 
+        user?.username;
       if (clerkEmail) userEmail = clerkEmail;
       if (user?.id) userId = user.id;
     }
@@ -91,7 +94,11 @@ export function InventoryForm({ editingItem, onCancelEdit, onSubmit, onSave }) {
 
     try {
       if (typeof submitFunc === 'function') {
-        await submitFunc(editingItem ? { ...(editingItem || {}), ...itemData } : itemData);
+        // Pastikan saat edit maupun tambah, data user_id dan added_by selalu disertakan
+        const finalPayload = editingItem 
+          ? { ...(editingItem || {}), ...itemData, user_id: editingItem.user_id || userId, added_by: userEmail } 
+          : itemData;
+        await submitFunc(finalPayload);
       } else if (editingItem) {
         const itemId = editingItem.id || editingItem._id;
         if (itemId && typeof updateItem === 'function') {
