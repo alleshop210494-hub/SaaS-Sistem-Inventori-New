@@ -47,13 +47,22 @@ export function InventoryForm({ editingItem, onCancelEdit, onSubmit, onSave }) {
     const parsedPrice = Number(cleanPriceString);
     const parsedStock = Number(stock);
 
-    // Ambil data email dan ID dari Clerk dengan fallback yang aman
-    const userEmail = 
-      user?.primaryEmailAddress?.emailAddress || 
-      user?.emailAddresses?.[0]?.emailAddress || 
-      user?.username || 
-      'Authenticated User';
-      
+    // Fungsi helper untuk mendeteksi berbagai bentuk struktur data email dari Clerk
+    const getUserEmail = (usr) => {
+      if (!usr) return 'Unknown User';
+      if (typeof usr.primaryEmailAddress === 'string') return usr.primaryEmailAddress;
+      if (usr.primaryEmailAddress?.emailAddress) return usr.primaryEmailAddress.emailAddress;
+      if (Array.isArray(usr.emailAddresses) && usr.emailAddresses.length > 0) {
+        const first = usr.emailAddresses[0];
+        if (typeof first === 'string') return first;
+        if (first?.emailAddress) return first.emailAddress;
+      }
+      if (usr.email) return usr.email;
+      if (usr.username) return usr.username;
+      return 'Unknown User';
+    };
+
+    const userEmail = getUserEmail(user);
     const userId = user?.id || 'Anonymous ID';
 
     const itemData = {
