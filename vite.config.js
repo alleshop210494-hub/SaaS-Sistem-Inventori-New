@@ -1,22 +1,10 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import tailwindcss from '@tailwindcss/vite' // 1. Tambah import ini
 
 export default defineConfig({
-  plugins: [react()],
-  server: {
-    port: 5173,
-    host: true,
-    proxy: {
-      '/api': {
-        target: 'http://localhost:5173',
-        changeOrigin: true,
-      },
-    },
-  },
-  build: {
-    rollupOptions: {
-      // Mencegah Vite mencoba membundel modul backend Node.js
-      external: ['@vercel/postgres'],
-    },
-  },
-});
+  plugins: [
+    react(),
+    tailwindcss(), // 2. Tambahkan plugin ini ke array
+  ],
+})
