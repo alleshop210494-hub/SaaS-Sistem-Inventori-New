@@ -1,4 +1,4 @@
-import ImageKit from 'imagekit';
+import ImageKit from '@imagekit/nodejs';
 
 const imagekit = new ImageKit({
   publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
@@ -27,11 +27,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Missing fileName or fileData' });
     }
 
-    // Upload ke ImageKit
     const uploadResponse = await imagekit.upload({
-      file: fileData, // ImageKit menerima base64 string langsung
+      file: fileData,
       fileName: `${Date.now()}-${fileName}`,
-      folder: '/inventory', // Opsional: mengelompokkan file di folder tertentu
+      folder: '/inventory',
     });
 
     return res.status(200).json({ 
