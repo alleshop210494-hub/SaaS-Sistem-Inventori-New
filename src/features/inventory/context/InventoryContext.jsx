@@ -1,8 +1,10 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useUser } from '@clerk/clerk-react';
 
 const InventoryContext = createContext();
 
 export function InventoryProvider({ children }) {
+  const { user } = useUser();
   const [items, setItems] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [transactions, setTransactions] = useState([]);
@@ -117,20 +119,30 @@ export function InventoryProvider({ children }) {
   }, []);
 
   const addItem = async (itemData) => {
-    const newItem = { id: Date.now(), ...itemData };
+    // Ambil data email dan ID dari user Clerk yang sedang login
+    const userEmail = user?.primaryEmailAddress?.emailAddress || user?.username || 'Unknown User';
+    const userId = user?.id || 'Anonymous ID';
+
+    const completeItemData = {
+      ...itemData,
+      user_id: userId,
+      added_by: userEmail
+    };
+
+    const newItem = { id: Date.now(), ...completeItemData };
     setItems((prev) => {
       const updated = [newItem, ...prev];
       localStorage.setItem('inventory_items', JSON.stringify(updated));
       return updated;
     });
 
-    addTransaction('TAMBAH', `Menambahkan barang baru: ${itemData.name} (Stok: ${itemData.stock})`);
+    addTransaction('TAMBAH', `Menambahkan barang baru: ${itemData.name} oleh ${userEmail} (Stok: ${itemData.stock})`);
 
     try {
       await fetch('/api/items', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(itemData),
+        body: JSON.stringify(completeItemData),
       });
       fetchData();
     } catch (err) {
@@ -139,8 +151,15 @@ export function InventoryProvider({ children }) {
   };
 
   const updateItem = async (id, itemData) => {
+    const userEmail = user?.primaryEmailAddress?.emailAddress || user?.username;
+    
+    const completeItemData = {
+      ...itemData,
+      ...(userEmail && { added_by: userEmail })
+    };
+
     setItems((prev) => {
-      const updated = prev.map((item) => (item.id === id || item._id === id ? { ...item, ...itemData } : item));
+      const updated = prev.map((item) => (item.id === id || item._id === id ? { ...item, ...completeItemData } : item));
       localStorage.setItem('inventory_items', JSON.stringify(updated));
       return updated;
     });
@@ -151,7 +170,7 @@ export function InventoryProvider({ children }) {
       await fetch(`/api/items?id=${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(itemData),
+        body: JSON.stringify(completeItemData),
       });
       fetchData();
     } catch (err) {
