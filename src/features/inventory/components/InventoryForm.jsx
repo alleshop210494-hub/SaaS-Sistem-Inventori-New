@@ -48,7 +48,7 @@ export function InventoryForm({ editingItem, initialData, onCancelEdit, onClose,
     const parsedPrice = Number(cleanPriceString);
     const parsedStock = Number(stock);
 
-    // Ambil email user login secara konsisten (Clerk -> LocalStorage -> Fallback Email Anda)
+    // Ambil email user login secara konsisten dengan fallback mutlak ke email Anda
     let userEmail = 'alleshop210494@gmail.com';
     let userId = 'user-alleshop';
 
