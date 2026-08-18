@@ -4,7 +4,7 @@ import { useUser } from '@clerk/clerk-react';
 const InventoryContext = createContext();
 
 export function InventoryProvider({ children }) {
-  const { user } = useUser();
+  const { user, isLoaded, isSignedIn } = useUser();
   const [items, setItems] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [transactions, setTransactions] = useState([]);
@@ -119,8 +119,13 @@ export function InventoryProvider({ children }) {
   }, []);
 
   const addItem = async (itemData) => {
-    // Ambil data email dan ID dari user Clerk yang sedang login
-    const userEmail = user?.primaryEmailAddress?.emailAddress || user?.username || 'Unknown User';
+    // Ambil data email dan ID dari Clerk dengan pengecekan berlapis agar tidak 'Unknown User'
+    const userEmail = 
+      user?.primaryEmailAddress?.emailAddress || 
+      user?.emailAddresses?.[0]?.emailAddress || 
+      user?.username || 
+      (isSignedIn ? 'Authenticated User' : 'Unknown User');
+      
     const userId = user?.id || 'Anonymous ID';
 
     const completeItemData = {
@@ -151,10 +156,16 @@ export function InventoryProvider({ children }) {
   };
 
   const updateItem = async (id, itemData) => {
-    const userEmail = user?.primaryEmailAddress?.emailAddress || user?.username;
-    
+    const userEmail = 
+      user?.primaryEmailAddress?.emailAddress || 
+      user?.emailAddresses?.[0]?.emailAddress || 
+      user?.username;
+      
+    const userId = user?.id;
+
     const completeItemData = {
       ...itemData,
+      ...(userId && { user_id: userId }),
       ...(userEmail && { added_by: userEmail })
     };
 
