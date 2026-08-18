@@ -47,23 +47,34 @@ export function InventoryForm({ editingItem, onCancelEdit, onSubmit, onSave }) {
     const parsedPrice = Number(cleanPriceString);
     const parsedStock = Number(stock);
 
-    // Fungsi helper untuk mendeteksi berbagai bentuk struktur data email dari Clerk
-    const getUserEmail = (usr) => {
-      if (!usr) return 'Unknown User';
-      if (typeof usr.primaryEmailAddress === 'string') return usr.primaryEmailAddress;
-      if (usr.primaryEmailAddress?.emailAddress) return usr.primaryEmailAddress.emailAddress;
-      if (Array.isArray(usr.emailAddresses) && usr.emailAddresses.length > 0) {
-        const first = usr.emailAddresses[0];
-        if (typeof first === 'string') return first;
-        if (first?.emailAddress) return first.emailAddress;
-      }
-      if (usr.email) return usr.email;
-      if (usr.username) return usr.username;
-      return 'Unknown User';
-    };
+    // Ambil email dan ID pengguna dengan prioritas: Clerk -> LocalStorage -> Email Login Anda
+    let userEmail = 'alleshop210494@gmail.com';
+    let userId = 'user-alleshop';
 
-    const userEmail = getUserEmail(user);
-    const userId = user?.id || 'Anonymous ID';
+    if (user) {
+      const clerkEmail = user?.primaryEmailAddress?.emailAddress || user?.emailAddresses?.[0]?.emailAddress || user?.username;
+      if (clerkEmail) userEmail = clerkEmail;
+      if (user?.id) userId = user.id;
+    }
+
+    try {
+      const localUser = localStorage.getItem('user') || localStorage.getItem('currentUser') || localStorage.getItem('auth_user');
+      if (localUser) {
+        try {
+          const parsed = JSON.parse(localUser);
+          if (parsed.email) userEmail = parsed.email;
+          if (parsed.id || parsed.userId) userId = parsed.id || parsed.userId;
+        } catch (err) {
+          if (localUser.includes('@')) userEmail = localUser;
+        }
+      }
+      const savedEmail = localStorage.getItem('email') || localStorage.getItem('userEmail');
+      if (savedEmail && savedEmail.includes('@')) {
+        userEmail = savedEmail;
+      }
+    } catch (err) {
+      console.error('Error reading localStorage:', err);
+    }
 
     const itemData = {
       name,
