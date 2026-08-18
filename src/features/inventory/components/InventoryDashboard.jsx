@@ -22,66 +22,130 @@ export function InventoryDashboard() {
 
     const totalValue = items.reduce((acc, curr) => acc + (Number(curr.stock || 0) * Number(curr.price || 0)), 0);
 
-    const htmlContent = `
-      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-      <head>
-        <meta charset="utf-8" />
-        <style>
-          table { border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 11pt; }
-          th { background-color: #0f172a; color: #ffffff; font-weight: bold; text-align: center; border: 1px solid #000000; padding: 10px; }
-          td { border: 1px solid #cbd5e1; padding: 8px; vertical-align: middle; }
-          .title { font-size: 16pt; font-weight: bold; margin-bottom: 5px; color: #0f172a; text-transform: uppercase; }
-          .subtitle { font-size: 10pt; margin-bottom: 15px; color: #475569; }
-          .number { text-align: right; mso-number-format:"#,##0"; }
-          .center { text-align: center; }
-          .footer-row { font-weight: bold; background-color: #f1f5f9; }
-        </style>
-      </head>
-      <body>
-        <div class="title">Laporan Ringkasan Eksekutif Inventori</div>
-        <div class="subtitle">Tanggal Cetak: ${new Date().toLocaleString('id-ID')} | Total Jenis Barang: ${items.length} Item</div>
-        <table>
-          <thead>
-            <tr>
-              <th>No</th>
-              <th>Nama Barang</th>
-              <th>Kategori</th>
-              <th>SKU</th>
-              <th>Stok</th>
-              <th>Harga Satuan (Rp)</th>
-              <th>Total Nilai (Rp)</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${items.map((item, index) => {
-              const stock = Number(item.stock || 0);
-              const price = Number(item.price || 0);
-              const total = stock * price;
-              return `
-                <tr>
-                  <td class="center">${index + 1}</td>
-                  <td>${item.name || '-'}</td>
-                  <td>${item.category || '-'}</td>
-                  <td>${item.sku || '-'}</td>
-                  <td class="number">${stock}</td>
-                  <td class="number">${price}</td>
-                  <td class="number">${total}</td>
-                </tr>
-              `;
-            }).join('')}
-          </tbody>
-          <tfoot>
-            <tr class="footer-row">
-              <td colspan="6" style="text-align: right;">Total Keseluruhan Nilai Inventori:</td>
-              <td class="number">${totalValue}</td>
-            </tr>
-          </tfoot>
-        </table>
-      </body>
-      </html>
-    `;
+    // Format XML Spreadsheet Microsoft Excel agar terbagi ke dalam kolom dengan rapi
+    const xmlContent = `<?xml version="1.0" encoding="UTF-8"?>
+    <?mso-application progid="Excel.Sheet"?>
+    <Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+      xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:x="urn:schemas-microsoft-com:office:excel"
+      xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+      xmlns:html="http://www.w3.org/TR/REC-html40">
+      <Styles>
+        <Style ss:ID="Header">
+          <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+          <Borders>
+            <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1"/>
+            <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1"/>
+            <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1"/>
+            <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1"/>
+          </Borders>
+          <Font ss:Bold="1" ss:Color="#FFFFFF" ss:Size="11" ss:FontName="Arial"/>
+          <Interior ss:Color="#0F172A" ss:Pattern="Solid"/>
+        </Style>
+        <Style ss:ID="Title">
+          <Font ss:Bold="1" ss:Size="14" ss:Color="#0F172A" ss:FontName="Arial"/>
+        </Style>
+        <Style ss:ID="Subtitle">
+          <Font ss:Size="10" ss:Color="#475569" ss:FontName="Arial"/>
+        </Style>
+        <Style ss:ID="CellData">
+          <Alignment ss:Vertical="Center"/>
+          <Borders>
+            <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+            <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+            <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+            <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+          </Borders>
+          <Font ss:Size="10" ss:FontName="Arial"/>
+        </Style>
+        <Style ss:ID="CellCenter">
+          <Alignment ss:Horizontal="Center" ss:Vertical="Center"/>
+          <Borders>
+            <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+            <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+            <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+            <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+          </Borders>
+          <Font ss:Size="10" ss:FontName="Arial"/>
+        </Style>
+        <Style ss:ID="CellNumber">
+          <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+          <Borders>
+            <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+            <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+            <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+            <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+          </Borders>
+          <Font ss:Size="10" ss:FontName="Arial"/>
+          <NumberFormat ss:Format="#,##0"/>
+        </Style>
+        <Style ss:ID="FooterStyle">
+          <Alignment ss:Horizontal="Right" ss:Vertical="Center"/>
+          <Borders>
+            <Border ss:Position="Bottom" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+            <Border ss:Position="Left" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+            <Border ss:Position="Right" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+            <Border ss:Position="Top" ss:LineStyle="Continuous" ss:Weight="1" ss:Color="#CBD5E1"/>
+          </Borders>
+          <Font ss:Bold="1" ss:Size="10" ss:FontName="Arial"/>
+          <Interior ss:Color="#F1F5F9" ss:Pattern="Solid"/>
+        </Style>
+      </Styles>
+      <Worksheet ss:Name="Laporan Inventori">
+        <Table>
+          <Column ss:Width="40"/>
+          <Column ss:Width="180"/>
+          <Column ss:Width="110"/>
+          <Column ss:Width="100"/>
+          <Column ss:Width="60"/>
+          <Column ss:Width="110"/>
+          <Column ss:Width="120"/>
+          
+          <Row ss:Height="25">
+            <Cell ss:StyleID="Title"><Data ss:Type="String">Laporan Ringkasan Eksekutif Inventori</Data></Cell>
+          </Row>
+          <Row ss:Height="18">
+            <Cell ss:StyleID="Subtitle"><Data ss:Type="String">Tanggal Cetak: ${new Date().toLocaleString('id-ID')} | Total Jenis Barang: ${items.length} Item</Data></Cell>
+          </Row>
+          <Row ss:Height="10"/>
+          
+          <Row ss:Height="25">
+            <Cell ss:StyleID="Header"><Data ss:Type="String">No</Data></Cell>
+            <Cell ss:StyleID="Header"><Data ss:Type="String">Nama Barang</Data></Cell>
+            <Cell ss:StyleID="Header"><Data ss:Type="String">Kategori</Data></Cell>
+            <Cell ss:StyleID="Header"><Data ss:Type="String">SKU</Data></Cell>
+            <Cell ss:StyleID="Header"><Data ss:Type="String">Stok</Data></Cell>
+            <Cell ss:StyleID="Header"><Data ss:Type="String">Harga Satuan (Rp)</Data></Cell>
+            <Cell ss:StyleID="Header"><Data ss:Type="String">Total Nilai (Rp)</Data></Cell>
+          </Row>
 
-    const blob = new Blob(['\ufeff' + htmlContent], { type: 'application/vnd.ms-excel' });
+          ${items.map((item, index) => {
+            const stock = Number(item.stock || 0);
+            const price = Number(item.price || 0);
+            const total = stock * price;
+            return `
+            <Row ss:Height="20">
+              <Cell ss:StyleID="CellCenter"><Data ss:Type="Number">${index + 1}</Data></Cell>
+              <Cell ss:StyleID="CellData"><Data ss:Type="String">${item.name || '-'}</Data></Cell>
+              <Cell ss:StyleID="CellData"><Data ss:Type="String">${item.category || '-'}</Data></Cell>
+              <Cell ss:StyleID="CellData"><Data ss:Type="String">${item.sku || '-'}</Data></Cell>
+              <Cell ss:StyleID="CellNumber"><Data ss:Type="Number">${stock}</Data></Cell>
+              <Cell ss:StyleID="CellNumber"><Data ss:Type="Number">${price}</Data></Cell>
+              <Cell ss:StyleID="CellNumber"><Data ss:Type="Number">${total}</Data></Cell>
+            </Row>`;
+          }).join('')}
+
+          <Row ss:Height="22">
+            <Cell ss:StyleID="FooterStyle" ss:Index="1" ss:MergeAcross="4"><Data ss:Type="String">Total Keseluruhan Nilai Inventori:</Data></Cell>
+            <Cell ss:StyleID="FooterStyle"/>
+            <Cell ss:StyleID="FooterStyle"/>
+            <Cell ss:StyleID="FooterStyle" ss:Index="7"><Data ss:Type="Number">${totalValue}</Data></Cell>
+          </Row>
+        </Table>
+      </Worksheet>
+    </Workbook>`;
+
+    const blob = new Blob([xmlContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
