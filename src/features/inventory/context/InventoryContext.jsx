@@ -16,29 +16,6 @@ export function InventoryProvider({ children }) {
       setCompanyName(savedCompanyName);
     }
 
-    // Load Items
-    const savedItems = localStorage.getItem('inventory_items');
-    if (savedItems) {
-      try {
-        const parsed = JSON.parse(savedItems);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setItems(parsed);
-        } else {
-          setItems([
-            { id: 1, name: 'Laptop Asus ROG Strix', category: 'Elektronik', sku: 'SKU-001', stock: 12, price: 15000000 },
-            { id: 2, name: 'Kertas HVS A4 70gr', category: 'ATK', sku: 'SKU-002', stock: 50, price: 45000 },
-          ]);
-        }
-      } catch (e) {
-        setItems([]);
-      }
-    } else {
-      setItems([
-        { id: 1, name: 'Laptop Asus ROG Strix', category: 'Elektronik', sku: 'SKU-001', stock: 12, price: 15000000 },
-        { id: 2, name: 'Kertas HVS A4 70gr', category: 'ATK', sku: 'SKU-002', stock: 50, price: 45000 },
-      ]);
-    }
-
     // Load Suppliers
     const savedSuppliers = localStorage.getItem('inventory_suppliers');
     if (savedSuppliers) {
@@ -82,8 +59,6 @@ export function InventoryProvider({ children }) {
       setTransactions(defaultTx);
       localStorage.setItem('inventory_transactions', JSON.stringify(defaultTx));
     }
-
-    setLoading(false);
   };
 
   const handleSetCompanyName = (name) => {
@@ -109,7 +84,7 @@ export function InventoryProvider({ children }) {
     setLoading(true);
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      const timeoutId = setTimeout(() => controller.abort(), 4000);
 
       const res = await fetch('/api/items', { signal: controller.signal });
       clearTimeout(timeoutId);
@@ -117,17 +92,20 @@ export function InventoryProvider({ children }) {
       if (res.ok) {
         const data = await res.json();
         const finalData = Array.isArray(data) ? data : data.items || [];
-        if (finalData.length > 0) {
-          setItems(finalData);
-          localStorage.setItem('inventory_items', JSON.stringify(finalData));
-        } else {
-          loadInitialData();
-        }
+        setItems(finalData);
+        localStorage.setItem('inventory_items', JSON.stringify(finalData));
       } else {
-        loadInitialData();
+        const savedItems = localStorage.getItem('inventory_items');
+        if (savedItems) {
+          setItems(JSON.parse(savedItems));
+        }
       }
     } catch (err) {
-      loadInitialData();
+      console.error('Gagal mengambil data dari database:', err);
+      const savedItems = localStorage.getItem('inventory_items');
+      if (savedItems) {
+        setItems(JSON.parse(savedItems));
+      }
     } finally {
       setLoading(false);
     }
@@ -135,6 +113,7 @@ export function InventoryProvider({ children }) {
 
   useEffect(() => {
     loadInitialData();
+    fetchData();
   }, []);
 
   const addItem = async (itemData) => {
@@ -153,6 +132,7 @@ export function InventoryProvider({ children }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(itemData),
       });
+      fetchData();
     } catch (err) {
       console.error('API sync error (addItem):', err);
     }
@@ -173,6 +153,7 @@ export function InventoryProvider({ children }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(itemData),
       });
+      fetchData();
     } catch (err) {
       console.error('API sync error (updateItem):', err);
     }
@@ -194,6 +175,7 @@ export function InventoryProvider({ children }) {
       await fetch(`/api/items?id=${id}`, {
         method: 'DELETE',
       });
+      fetchData();
     } catch (err) {
       console.error('API sync error (deleteItem):', err);
     }
