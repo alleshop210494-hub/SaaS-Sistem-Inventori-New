@@ -1,12 +1,9 @@
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import ImageKit from 'imagekit';
 
-const s3Client = new S3Client({
-  region: 'auto',
-  endpoint: process.env.R2_ENDPOINT,
-  credentials: {
-    accessKeyId: process.env.R2_ACCESS_KEY_ID,
-    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
-  },
+const imagekit = new ImageKit({
+  publicKey: process.env.IMAGEKIT_PUBLIC_KEY,
+  privateKey: process.env.IMAGEKIT_PRIVATE_KEY,
+  urlEndpoint: process.env.IMAGEKIT_URL_ENDPOINT,
 });
 
 export default async function handler(req, res) {
@@ -24,28 +21,26 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { fileName, fileData, contentType } = req.body;
+    const { fileName, fileData } = req.body;
+
     if (!fileName || !fileData) {
       return res.status(400).json({ error: 'Missing fileName or fileData' });
     }
 
-    const buffer = Buffer.from(fileData.replace(/^data:.*;base64,/, ''), 'base64');
-    const uniqueName = `${Date.now()}-${fileName}`;
+    // Upload ke ImageKit
+    const uploadResponse = await imagekit.upload({
+      file: fileData, // ImageKit menerima base64 string langsung
+      fileName: `${Date.now()}-${fileName}`,
+      folder: '/inventory', // Opsional: mengelompokkan file di folder tertentu
+    });
 
-    const uploadParams = {
-      Bucket: process.env.R2_BUCKET_NAME,
-      Key: uniqueName,
-      Body: buffer,
-      ContentType: contentType || 'application/octet-stream',
-    };
-
-    await s3Client.send(new PutObjectCommand(uploadParams));
-
-    const fileUrl = `${process.env.R2_PUBLIC_URL}/${uniqueName}`;
-
-    return res.status(200).json({ success: true, url: fileUrl });
+    return res.status(200).json({ 
+      success: true, 
+      url: uploadResponse.url,
+      fileId: uploadResponse.fileId 
+    });
   } catch (error) {
-    console.error('R2 Upload error:', error);
+    console.error('ImageKit Upload error:', error);
     return res.status(500).json({ error: error.message });
   }
 }
