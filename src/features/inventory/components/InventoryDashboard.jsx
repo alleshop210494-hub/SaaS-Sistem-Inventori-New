@@ -244,7 +244,6 @@ export function InventoryDashboard() {
         <div>
           {activeTab === 'dashboard' && (
             <div className="space-y-6">
-              {/* Tombol Export khusus untuk tab Dashboard */}
               <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
                 <span className="text-xs font-semibold" style={{ color: '#4b5563' }}>Export Laporan Ringkasan Eksekutif:</span>
                 <div className="flex items-center gap-2">
@@ -287,7 +286,12 @@ export function InventoryDashboard() {
       {/* Modal Form Tambah / Edit Barang */}
       {showAddModal && (
         <InventoryForm
+          editingItem={editingItem}
           initialData={editingItem}
+          onCancelEdit={() => {
+            setShowAddModal(false);
+            setEditingItem(null);
+          }}
           onClose={() => {
             setShowAddModal(false);
             setEditingItem(null);

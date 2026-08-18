@@ -2,13 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { useInventory } from '../context/InventoryContext';
 import { useUser } from '@clerk/clerk-react';
 
-export function InventoryForm({ editingItem, onCancelEdit, onSubmit, onSave }) {
+export function InventoryForm({ editingItem, initialData, onCancelEdit, onClose, onSubmit, onSave }) {
   const inventory = useInventory() || {};
   const addItem = inventory.addItem;
   const updateItem = inventory.updateItem;
   const suppliers = inventory.suppliers || [];
 
   const { user } = useUser();
+  const activeEditing = editingItem || initialData;
 
   const [name, setName] = useState('');
   const [category, setCategory] = useState('');
@@ -18,13 +19,13 @@ export function InventoryForm({ editingItem, onCancelEdit, onSubmit, onSave }) {
   const [supplierId, setSupplierId] = useState('');
 
   useEffect(() => {
-    if (editingItem) {
-      setName(editingItem.name || '');
-      setCategory(editingItem.category || '');
-      setSku(editingItem.sku || '');
-      setStock(editingItem.stock !== undefined ? editingItem.stock : '');
-      setPrice(editingItem.price !== undefined ? editingItem.price : '');
-      setSupplierId(editingItem.supplier_id || '');
+    if (activeEditing) {
+      setName(activeEditing.name || '');
+      setCategory(activeEditing.category || '');
+      setSku(activeEditing.sku || '');
+      setStock(activeEditing.stock !== undefined ? activeEditing.stock : '');
+      setPrice(activeEditing.price !== undefined ? activeEditing.price : '');
+      setSupplierId(activeEditing.supplier_id || '');
     } else {
       setName('');
       setCategory('');
@@ -33,7 +34,7 @@ export function InventoryForm({ editingItem, onCancelEdit, onSubmit, onSave }) {
       setPrice('');
       setSupplierId('');
     }
-  }, [editingItem]);
+  }, [activeEditing]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -47,7 +48,7 @@ export function InventoryForm({ editingItem, onCancelEdit, onSubmit, onSave }) {
     const parsedPrice = Number(cleanPriceString);
     const parsedStock = Number(stock);
 
-    // Fungsi helper untuk mendapatkan email dan ID user yang sedang login secara konsisten
+    // Ambil email user login secara konsisten (Clerk -> LocalStorage -> Fallback Email Anda)
     let userEmail = 'alleshop210494@gmail.com';
     let userId = 'user-alleshop';
 
@@ -94,13 +95,12 @@ export function InventoryForm({ editingItem, onCancelEdit, onSubmit, onSave }) {
 
     try {
       if (typeof submitFunc === 'function') {
-        // Pastikan saat edit maupun tambah, data user_id dan added_by selalu disertakan
-        const finalPayload = editingItem 
-          ? { ...(editingItem || {}), ...itemData, user_id: editingItem.user_id || userId, added_by: userEmail } 
+        const finalPayload = activeEditing 
+          ? { ...activeEditing, ...itemData, user_id: activeEditing.user_id || userId, added_by: userEmail } 
           : itemData;
         await submitFunc(finalPayload);
-      } else if (editingItem) {
-        const itemId = editingItem.id || editingItem._id;
+      } else if (activeEditing) {
+        const itemId = activeEditing.id || activeEditing._id;
         if (itemId && typeof updateItem === 'function') {
           await updateItem(itemId, itemData);
         }
@@ -110,11 +110,10 @@ export function InventoryForm({ editingItem, onCancelEdit, onSubmit, onSave }) {
         }
       }
 
-      if (editingItem && typeof onCancelEdit === 'function') {
-        onCancelEdit();
-      }
+      if (typeof onCancelEdit === 'function') onCancelEdit();
+      if (typeof onClose === 'function') onClose();
 
-      if (!editingItem) {
+      if (!activeEditing) {
         setName('');
         setCategory('');
         setSku('');
@@ -132,15 +131,18 @@ export function InventoryForm({ editingItem, onCancelEdit, onSubmit, onSave }) {
     <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold text-gray-800">
-          {editingItem ? 'Edit Barang Inventori' : 'Tambah Barang Baru'}
+          {activeEditing ? 'Edit Barang Inventori' : 'Tambah Barang Baru'}
         </h3>
-        {editingItem && typeof onCancelEdit === 'function' && (
+        {(onCancelEdit || onClose) && (
           <button
             type="button"
-            onClick={onCancelEdit}
+            onClick={() => {
+              if (onCancelEdit) onCancelEdit();
+              if (onClose) onClose();
+            }}
             className="text-xs text-red-600 hover:underline font-medium"
           >
-            Batal Edit
+            Batal
           </button>
         )}
       </div>
@@ -214,10 +216,13 @@ export function InventoryForm({ editingItem, onCancelEdit, onSubmit, onSave }) {
           </select>
         </div>
         <div className="md:col-span-3 flex justify-end gap-2 mt-2">
-          {editingItem && typeof onCancelEdit === 'function' && (
+          {(onCancelEdit || onClose) && (
             <button
               type="button"
-              onClick={onCancelEdit}
+              onClick={() => {
+                if (onCancelEdit) onCancelEdit();
+                if (onClose) onClose();
+              }}
               className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
             >
               Batal
@@ -227,7 +232,7 @@ export function InventoryForm({ editingItem, onCancelEdit, onSubmit, onSave }) {
             type="submit"
             className="px-5 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-md"
           >
-            {editingItem ? 'Simpan Perubahan' : 'Tambah Barang'}
+            {activeEditing ? 'Simpan Perubahan' : 'Tambah Barang'}
           </button>
         </div>
       </form>
