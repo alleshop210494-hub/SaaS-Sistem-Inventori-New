@@ -1,197 +1,154 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useInventory } from '../context/InventoryContext';
+import { useUser } from '@clerk/clerk-react';
 
-export function InventoryForm({ editingItem, onCancelEdit, onSubmit, onSave }) {
-  const inventory = useInventory() || {};
-  const addItem = inventory.addItem;
-  const updateItem = inventory.updateItem;
-  const suppliers = inventory.suppliers || [];
+export const InventoryForm = ({ onClose }) => {
+  const { addItem } = useInventory();
+  const { user } = useUser();
+  
+  const [formData, setFormData] = useState({
+    name: '',
+    category: '',
+    sku: '',
+    stock: '',
+    price: '',
+    image_url: ''
+  });
 
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState('');
-  const [sku, setSku] = useState('');
-  const [stock, setStock] = useState('');
-  const [price, setPrice] = useState('');
-  const [supplierId, setSupplierId] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    if (editingItem) {
-      setName(editingItem.name || '');
-      setCategory(editingItem.category || '');
-      setSku(editingItem.sku || '');
-      setStock(editingItem.stock !== undefined ? editingItem.stock : '');
-      setPrice(editingItem.price !== undefined ? editingItem.price : '');
-      setSupplierId(editingItem.supplier_id || '');
-    } else {
-      setName('');
-      setCategory('');
-      setSku('');
-      setStock('');
-      setPrice('');
-      setSupplierId('');
-    }
-  }, [editingItem]);
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!name.trim()) {
-      alert('Nama barang tidak boleh kosong!');
-      return;
-    }
-
-    const cleanPriceString = typeof price === 'string' ? price.replace(/\./g, '').replace(',', '.') : price;
-    const parsedPrice = Number(cleanPriceString);
-    const parsedStock = Number(stock);
-
-    const itemData = {
-      name,
-      category,
-      sku,
-      stock: isNaN(parsedStock) ? 0 : parsedStock,
-      price: isNaN(parsedPrice) ? 0 : parsedPrice,
-      supplier_id: supplierId ? Number(supplierId) : null,
-    };
-
-    const submitFunc = onSubmit || onSave;
+    setLoading(true);
 
     try {
-      if (typeof submitFunc === 'function') {
-        await submitFunc(editingItem ? { ...(editingItem || {}), ...itemData } : itemData);
-      } else if (editingItem) {
-        const itemId = editingItem.id || editingItem._id;
-        if (itemId && typeof updateItem === 'function') {
-          await updateItem(itemId, itemData);
-        }
-      } else {
-        if (typeof addItem === 'function') {
-          await addItem(itemData);
-        }
-      }
+      // Ambil data email dan ID dari Clerk secara langsung di sini
+      const userEmail = 
+        user?.primaryEmailAddress?.emailAddress || 
+        user?.emailAddresses?.[0]?.emailAddress || 
+        user?.username || 
+        'Authenticated User';
+        
+      const userId = user?.id || 'Anonymous ID';
 
-      if (editingItem && typeof onCancelEdit === 'function') {
-        onCancelEdit();
-      }
+      // Gabungkan data form dengan data user Clerk
+      const completeData = {
+        ...formData,
+        stock: Number(formData.stock) || 0,
+        price: Number(formData.price) || 0,
+        user_id: userId,
+        added_by: userEmail
+      };
 
-      if (!editingItem) {
-        setName('');
-        setCategory('');
-        setSku('');
-        setStock('');
-        setPrice('');
-        setSupplierId('');
-      }
+      await addItem(completeData);
+      
+      if (onClose) onClose();
     } catch (error) {
-      console.error('Error saat menyimpan form:', error);
-      alert('Terjadi kesalahan saat menyimpan data.');
+      console.error('Gagal menyimpan barang:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-gray-800">
-          {editingItem ? 'Edit Barang Inventori' : 'Tambah Barang Baru'}
-        </h3>
-        {editingItem && typeof onCancelEdit === 'function' && (
-          <button
-            type="button"
-            onClick={onCancelEdit}
-            className="text-xs text-red-600 hover:underline font-medium"
-          >
-            Batal Edit
-          </button>
-        )}
-      </div>
-      <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+    <div className="bg-white p-6 rounded-lg shadow-md max-w-lg mx-auto">
+      <h2 className="text-xl font-bold mb-4 text-gray-800">Tambah Barang Baru</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Nama Barang</label>
+          <label className="block text-sm font-medium text-gray-700">Nama Barang</label>
           <input
             type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
             required
-            placeholder="Contoh: Laptop Asus ROG"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Kategori</label>
+            <input
+              type="text"
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">SKU</label>
+            <input
+              type="text"
+              name="sku"
+              value={formData.sku}
+              onChange={handleChange}
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Stok</label>
+            <input
+              type="number"
+              name="stock"
+              value={formData.stock}
+              onChange={handleChange}
+              required
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700">Harga (Rp)</label>
+            <input
+              type="number"
+              name="price"
+              value={formData.price}
+              onChange={handleChange}
+              required
+              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2"
+            />
+          </div>
+        </div>
+
         <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Kategori</label>
+          <label className="block text-sm font-medium text-gray-700">URL Gambar (Opsional)</label>
           <input
             type="text"
-            value={category}
-            onChange={(e) => setCategory(e.target.value)}
-            placeholder="Contoh: Electronic"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+            name="image_url"
+            value={formData.image_url}
+            onChange={handleChange}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm border p-2"
           />
         </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase mb-1">SKU / Kode Barang</label>
-          <input
-            type="text"
-            value={sku}
-            onChange={(e) => setSku(e.target.value)}
-            placeholder="Contoh: SKU-001"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Stok</label>
-          <input
-            type="text"
-            value={stock}
-            onChange={(e) => setStock(e.target.value)}
-            required
-            placeholder="0"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Harga Satuan (Rp)</label>
-          <input
-            type="text"
-            value={price}
-            onChange={(e) => setPrice(e.target.value)}
-            required
-            placeholder="0"
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-          />
-        </div>
-        <div>
-          <label className="block text-xs font-medium text-gray-500 uppercase mb-1">Supplier</label>
-          <select
-            value={supplierId}
-            onChange={(e) => setSupplierId(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-          >
-            <option value="">-- Pilih Supplier --</option>
-            {suppliers.map((s) => (
-              <option key={s.id || s._id} value={s.id || s._id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="md:col-span-3 flex justify-end gap-2 mt-2">
-          {editingItem && typeof onCancelEdit === 'function' && (
+
+        <div className="flex justify-end space-x-3 pt-4">
+          {onClose && (
             <button
               type="button"
-              onClick={onCancelEdit}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+              onClick={onClose}
+              className="px-4 py-2 border rounded-md text-gray-600 hover:bg-gray-100"
             >
               Batal
             </button>
           )}
           <button
             type="submit"
-            className="px-5 py-2 bg-slate-900 text-white rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors shadow-md"
+            disabled={loading}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
           >
-            {editingItem ? 'Simpan Perubahan' : 'Tambah Barang'}
+            {loading ? 'Menyimpan...' : 'Simpan Barang'}
           </button>
         </div>
       </form>
     </div>
   );
-}
-
-export default InventoryForm;
+};
