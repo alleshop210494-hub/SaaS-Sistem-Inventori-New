@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useInventory } from '../context/InventoryContext';
 
 export function InventoryTable({ onEdit }) {
-  const { items = [], companyName = 'Perusahaan Saya', deleteItem } = useInventory() || {};
+  const { items = [], suppliers = [], companyName = 'Perusahaan Saya', deleteItem } = useInventory() || {};
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
 
@@ -17,9 +17,20 @@ export function InventoryTable({ onEdit }) {
 
   const categories = ['ALL', ...new Set(items.map((i) => i.category).filter(Boolean))];
 
-  // Helper untuk membaca berbagai kemungkinan nama properti supplier dari database
+  // Helper untuk mencocokkan supplier_id dengan nama supplier atau membaca teks langsung
   const getSupplierName = (item) => {
-    return item.supplier || item.supplierName || item.vendor || item.supplier_name || '-';
+    if (item.supplier) return item.supplier;
+    if (item.supplierName) return item.supplierName;
+    if (item.vendor) return item.vendor;
+    if (item.supplier_name) return item.supplier_name;
+
+    // Jika menyimpan supplier_id, cari namanya di daftar suppliers
+    if (item.supplier_id && suppliers.length > 0) {
+      const matched = suppliers.find(s => String(s.id || s._id) === String(item.supplier_id));
+      if (matched) return matched.name;
+    }
+
+    return '-';
   };
 
   const exportToExcel = () => {
