@@ -17,6 +17,11 @@ export function InventoryTable({ onEdit }) {
 
   const categories = ['ALL', ...new Set(items.map((i) => i.category).filter(Boolean))];
 
+  // Helper untuk membaca berbagai kemungkinan nama properti supplier dari database
+  const getSupplierName = (item) => {
+    return item.supplier || item.supplierName || item.vendor || item.supplier_name || '-';
+  };
+
   const exportToExcel = () => {
     if (filteredItems.length === 0) {
       alert('Tidak ada data untuk diexport.');
@@ -28,7 +33,7 @@ export function InventoryTable({ onEdit }) {
       'SKU / Kode': item.sku,
       'Stok': item.stock,
       'Harga Satuan (Rp)': item.price,
-      'Supplier': item.supplier || '-'
+      'Supplier': getSupplierName(item)
     }));
     const keys = Object.keys(dataToExport[0]);
     const csvContent = [
@@ -60,7 +65,7 @@ export function InventoryTable({ onEdit }) {
       item.sku,
       item.stock,
       Number(item.price || 0).toLocaleString('id-ID'),
-      item.supplier || '-'
+      getSupplierName(item)
     ]);
 
     const htmlContent = `
@@ -200,7 +205,7 @@ export function InventoryTable({ onEdit }) {
                     <td className="py-4 px-6 text-gray-500 font-mono text-xs">{item.sku}</td>
                     <td className="py-4 px-6 font-semibold text-gray-800">{item.stock}</td>
                     <td className="py-4 px-6 text-gray-600">Rp {Number(item.price || 0).toLocaleString('id-ID')}</td>
-                    <td className="py-4 px-6 text-gray-600">{item.supplier || '-'}</td>
+                    <td className="py-4 px-6 text-gray-600">{getSupplierName(item)}</td>
                     <td className="py-4 px-6 text-right space-x-2">
                       <button
                         type="button"
