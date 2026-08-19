@@ -1,6 +1,9 @@
-import { neon } from '@neondatabase/serverless';
+import { Pool } from 'pg';
 
-const sql = neon(process.env.NEON_DATABASE_URL);
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', true);
@@ -18,8 +21,8 @@ export default async function handler(req, res) {
 
   try {
     if (req.method === 'GET') {
-      const suppliers = await sql.query('SELECT * FROM suppliers ORDER BY id DESC');
-      return res.status(200).json({ success: true, data: suppliers });
+      const { rows } = await pool.query('SELECT * FROM suppliers ORDER BY id DESC');
+      return res.status(200).json({ success: true, data: rows });
     }
 
     if (req.method === 'POST') {
@@ -29,12 +32,26 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, message: 'Nama supplier wajib diisi.' });
       }
 
-      const result = await sql.query(
-        `INSERT INTO suppliers (name, contact_person, phone, email, address) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-        [name, contactPerson || '', phone || '', email || '', address || '']
-      );
+      const query = `INSERT INTO suppliers (name, contact_person, phone, email, address) VALUES ($1, $2, $3, $4, $5) RETURNING *`;
+      const values = [name, contactPerson || '', phone || '', email || '', address || ''];
+      const { rows } = await pool.query(query, values);
 
-      return res.status(201).json({ success: true, data: result[0] });
+      return res.status(201).json({ success: true, data: rows[0] });
+    }
+
+    if (req.method === 'PUT') {
+      const { id } = req.query;
+      const { name, contactPerson, phone, email, address } = req.body;
+      
+      if (!id) {
+        return res.status(400).json({ success: false, message: 'ID supplier diperlukan.' });
+      }
+
+      const query = `UPDATE suppliers SET name = COALESCE($1, name), contact_person = COALESCE($2, contact_person), phone = COALESCE($3, phone), email = COALESCE($4, email), address = COALESCE($5, address) WHERE id = $6 RETURNING *`;
+      const values = [name, contactPerson, phone, email, address, id];
+      const { rows } = await pool.query(query, values);
+
+      return res.status(200).json({ success: true, data: rows[0] });
     }
 
     if (req.method === 'DELETE') {
@@ -43,7 +60,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ success: false, message: 'ID supplier diperlukan.' });
       }
 
-      await sql.query('DELETE FROM suppliers WHERE id = $1', [id]);
+      await pool.query('DELETE FROM suppliers WHERE id = $1', [id]);
       return res.status(200).json({ success: true, message: 'Supplier berhasil dihapus.' });
     }
 
