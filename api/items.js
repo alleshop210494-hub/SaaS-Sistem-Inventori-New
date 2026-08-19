@@ -23,18 +23,18 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { name, category, sku, stock, price, image_url, added_by } = req.body;
-      const query = 'INSERT INTO products (name, category, sku, stock, price, image_url, added_by) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *';
-      const values = [name, category, sku, stock, price, image_url, added_by];
+      const { name, category, sku, stock, price, image_url, added_by, supplier_id } = req.body;
+      const query = 'INSERT INTO products (name, category, sku, stock, price, image_url, added_by, supplier_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING *';
+      const values = [name, category, sku, stock, price, image_url, added_by, supplier_id || null];
       const { rows } = await pool.query(query, values);
       return res.status(200).json(rows[0]);
     }
 
     if (req.method === 'PUT') {
       const { id } = req.query;
-      const { name, category, sku, stock, price, image_url, added_by } = req.body;
-      const query = 'UPDATE products SET name = COALESCE($1, name), category = COALESCE($2, category), sku = COALESCE($3, sku), stock = COALESCE($4, stock), price = COALESCE($5, price), image_url = COALESCE($6, image_url), added_by = COALESCE($7, added_by) WHERE id = $8 RETURNING *';
-      const values = [name, category, sku, stock, price, image_url, added_by, id];
+      const { name, category, sku, stock, price, image_url, added_by, supplier_id } = req.body;
+      const query = 'UPDATE products SET name = COALESCE($1, name), category = COALESCE($2, category), sku = COALESCE($3, sku), stock = COALESCE($4, stock), price = COALESCE($5, price), image_url = COALESCE($6, image_url), added_by = COALESCE($7, added_by), supplier_id = $8 WHERE id = $9 RETURNING *';
+      const values = [name, category, sku, stock, price, image_url, added_by, supplier_id || null, id];
       const { rows } = await pool.query(query, values);
       return res.status(200).json(rows[0]);
     }
