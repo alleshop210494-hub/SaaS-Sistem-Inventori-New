@@ -17,11 +17,20 @@ export function InventorySuppliers() {
       return;
     }
 
+    // Menyesuaikan payload agar cocok dengan backend (phone & contactPerson)
+    const supplierPayload = {
+      name,
+      phone: contact,
+      contactPerson: contact,
+      email,
+      address
+    };
+
     if (editingId) {
-      updateSupplier(editingId, { name, contact, email, address });
+      updateSupplier(editingId, supplierPayload);
       setEditingId(null);
     } else {
-      addSupplier({ name, contact, email, address });
+      addSupplier(supplierPayload);
     }
 
     setName('');
@@ -33,7 +42,7 @@ export function InventorySuppliers() {
   const handleEdit = (supplier) => {
     setEditingId(supplier.id || supplier._id);
     setName(supplier.name || '');
-    setContact(supplier.contact || '');
+    setContact(supplier.phone || supplier.contact || '');
     setEmail(supplier.email || '');
     setAddress(supplier.address || '');
   };
@@ -51,7 +60,7 @@ export function InventorySuppliers() {
     }
     const dataToExport = suppliers.map(s => ({
       'Nama Supplier': s.name,
-      'Kontak': s.contact,
+      'Kontak': s.phone || s.contact,
       'Email': s.email,
       'Alamat': s.address
     }));
@@ -81,7 +90,7 @@ export function InventorySuppliers() {
     const rows = suppliers.map((s, idx) => [
       idx + 1,
       s.name,
-      s.contact || '-',
+      s.phone || s.contact || '-',
       s.email || '-',
       s.address || '-'
     ]);
@@ -278,7 +287,7 @@ export function InventorySuppliers() {
                   return (
                     <tr key={id || Math.random()} className="hover:bg-gray-50/50 transition-colors">
                       <td className="py-4 px-6 font-medium text-gray-900">{sup.name}</td>
-                      <td className="py-4 px-6 text-gray-600">{sup.contact || '-'}</td>
+                      <td className="py-4 px-6 text-gray-600">{sup.phone || sup.contact || '-'}</td>
                       <td className="py-4 px-6 text-gray-600">{sup.email || '-'}</td>
                       <td className="py-4 px-6 text-gray-600">{sup.address || '-'}</td>
                       <td className="py-4 px-6 text-right space-x-2">
