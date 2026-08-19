@@ -17,11 +17,9 @@ export function InventorySuppliers() {
       return;
     }
 
-    // Menyesuaikan payload agar cocok dengan backend (phone & contactPerson)
     const supplierPayload = {
       name,
-      phone: contact,
-      contactPerson: contact,
+      contact,
       email,
       address
     };
@@ -42,7 +40,7 @@ export function InventorySuppliers() {
   const handleEdit = (supplier) => {
     setEditingId(supplier.id || supplier._id);
     setName(supplier.name || '');
-    setContact(supplier.phone || supplier.contact || '');
+    setContact(supplier.contact || '');
     setEmail(supplier.email || '');
     setAddress(supplier.address || '');
   };
@@ -60,7 +58,7 @@ export function InventorySuppliers() {
     }
     const dataToExport = suppliers.map(s => ({
       'Nama Supplier': s.name,
-      'Kontak': s.phone || s.contact,
+      'Kontak': s.contact,
       'Email': s.email,
       'Alamat': s.address
     }));
@@ -90,7 +88,7 @@ export function InventorySuppliers() {
     const rows = suppliers.map((s, idx) => [
       idx + 1,
       s.name,
-      s.phone || s.contact || '-',
+      s.contact || '-',
       s.email || '-',
       s.address || '-'
     ]);
@@ -287,7 +285,7 @@ export function InventorySuppliers() {
                   return (
                     <tr key={id || Math.random()} className="hover:bg-gray-50/50 transition-colors">
                       <td className="py-4 px-6 font-medium text-gray-900">{sup.name}</td>
-                      <td className="py-4 px-6 text-gray-600">{sup.phone || sup.contact || '-'}</td>
+                      <td className="py-4 px-6 text-gray-600">{sup.contact || '-'}</td>
                       <td className="py-4 px-6 text-gray-600">{sup.email || '-'}</td>
                       <td className="py-4 px-6 text-gray-600">{sup.address || '-'}</td>
                       <td className="py-4 px-6 text-right space-x-2">

@@ -12,13 +12,11 @@ export function InventoryProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   const loadInitialData = () => {
-    // Load Company Name
     const savedCompanyName = localStorage.getItem('inventory_company_name');
     if (savedCompanyName) {
       setCompanyName(savedCompanyName);
     }
 
-    // Load Suppliers dari localStorage sebagai fallback awal
     const savedSuppliers = localStorage.getItem('inventory_suppliers');
     if (savedSuppliers) {
       try {
@@ -43,7 +41,6 @@ export function InventoryProvider({ children }) {
       localStorage.setItem('inventory_suppliers', JSON.stringify(defaultSuppliers));
     }
 
-    // Load Transactions
     const savedTransactions = localStorage.getItem('inventory_transactions');
     if (savedTransactions) {
       try {
@@ -88,7 +85,6 @@ export function InventoryProvider({ children }) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-      // Fetch Items & Suppliers secara bersamaan dari database
       const [resItems, resSuppliers] = await Promise.all([
         fetch('/api/items', { signal: controller.signal }),
         fetch('/api/suppliers', { signal: controller.signal }).catch(() => null)
@@ -96,7 +92,6 @@ export function InventoryProvider({ children }) {
       
       clearTimeout(timeoutId);
 
-      // Handle Items
       if (resItems.ok) {
         const data = await resItems.json();
         const finalData = Array.isArray(data) ? data : data.items || [];
@@ -107,7 +102,6 @@ export function InventoryProvider({ children }) {
         if (savedItems) setItems(JSON.parse(savedItems));
       }
 
-      // Handle Suppliers dari Database (Diperbarui menyesuaikan format API { success: true, data: [...] })
       if (resSuppliers && resSuppliers.ok) {
         const supData = await resSuppliers.json();
         const finalSup = Array.isArray(supData) ? supData : (supData.data || supData.suppliers || []);
@@ -130,7 +124,6 @@ export function InventoryProvider({ children }) {
     fetchData();
   }, []);
 
-  // Helper function untuk memastikan email tidak pernah 'Unknown User'
   const resolveUserEmail = () => {
     let email = 
       user?.primaryEmailAddress?.emailAddress || 

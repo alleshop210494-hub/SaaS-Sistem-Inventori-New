@@ -1,7 +1,7 @@
 import { Pool } from 'pg';
 
 const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
+  connectionString: process.env.DATABASE_URL || process.env.NEON_DATABASE_URL,
   ssl: { rejectUnauthorized: false }
 });
 
@@ -26,14 +26,14 @@ export default async function handler(req, res) {
     }
 
     if (req.method === 'POST') {
-      const { name, contactPerson, phone, email, address } = req.body;
+      const { name, contact, email, address } = req.body;
       
       if (!name) {
         return res.status(400).json({ success: false, message: 'Nama supplier wajib diisi.' });
       }
 
-      const query = `INSERT INTO suppliers (name, contact_person, phone, email, address) VALUES ($1, $2, $3, $4, $5) RETURNING *`;
-      const values = [name, contactPerson || '', phone || '', email || '', address || ''];
+      const query = `INSERT INTO suppliers (name, contact, email, address) VALUES ($1, $2, $3, $4) RETURNING *`;
+      const values = [name, contact || '', email || '', address || ''];
       const { rows } = await pool.query(query, values);
 
       return res.status(201).json({ success: true, data: rows[0] });
@@ -41,14 +41,14 @@ export default async function handler(req, res) {
 
     if (req.method === 'PUT') {
       const { id } = req.query;
-      const { name, contactPerson, phone, email, address } = req.body;
+      const { name, contact, email, address } = req.body;
       
       if (!id) {
         return res.status(400).json({ success: false, message: 'ID supplier diperlukan.' });
       }
 
-      const query = `UPDATE suppliers SET name = COALESCE($1, name), contact_person = COALESCE($2, contact_person), phone = COALESCE($3, phone), email = COALESCE($4, email), address = COALESCE($5, address) WHERE id = $6 RETURNING *`;
-      const values = [name, contactPerson, phone, email, address, id];
+      const query = `UPDATE suppliers SET name = COALESCE($1, name), contact = COALESCE($2, contact), email = COALESCE($3, email), address = COALESCE($4, address) WHERE id = $5 RETURNING *`;
+      const values = [name, contact, email, address, id];
       const { rows } = await pool.query(query, values);
 
       return res.status(200).json({ success: true, data: rows[0] });
