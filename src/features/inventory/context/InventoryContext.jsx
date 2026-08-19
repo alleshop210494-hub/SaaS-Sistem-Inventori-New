@@ -220,7 +220,10 @@ export function InventoryProvider({ children }) {
   };
 
   const addSupplier = (supplierData) => {
-    const newSup = { id: Date.now(), ...supplierData };
+    // Membuat ID angka kecil yang aman untuk database INTEGER (increment dari ID terbesar)
+    const nextId = suppliers.length > 0 ? Math.max(...suppliers.map(s => Number(s.id || s._id) || 0)) + 1 : 1;
+    const newSup = { id: nextId, ...supplierData };
+    
     setSuppliers((prev) => {
       const updated = [newSup, ...prev];
       localStorage.setItem('inventory_suppliers', JSON.stringify(updated));
