@@ -18,7 +18,7 @@ export function InventoryProvider({ children }) {
       setCompanyName(savedCompanyName);
     }
 
-    // Load Suppliers
+    // Load Suppliers dari localStorage sebagai fallback awal
     const savedSuppliers = localStorage.getItem('inventory_suppliers');
     if (savedSuppliers) {
       try {
@@ -88,26 +88,38 @@ export function InventoryProvider({ children }) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-      const res = await fetch('/api/items', { signal: controller.signal });
+      // Fetch Items & Suppliers secara bersamaan dari database
+      const [resItems, resSuppliers] = await Promise.all([
+        fetch('/api/items', { signal: controller.signal }),
+        fetch('/api/suppliers', { signal: controller.signal }).catch(() => null)
+      ]);
+      
       clearTimeout(timeoutId);
 
-      if (res.ok) {
-        const data = await res.json();
+      // Handle Items
+      if (resItems.ok) {
+        const data = await resItems.json();
         const finalData = Array.isArray(data) ? data : data.items || [];
         setItems(finalData);
         localStorage.setItem('inventory_items', JSON.stringify(finalData));
       } else {
         const savedItems = localStorage.getItem('inventory_items');
-        if (savedItems) {
-          setItems(JSON.parse(savedItems));
+        if (savedItems) setItems(JSON.parse(savedItems));
+      }
+
+      // Handle Suppliers dari Database
+      if (resSuppliers && resSuppliers.ok) {
+        const supData = await resSuppliers.json();
+        const finalSup = Array.isArray(supData) ? supData : supData.suppliers || [];
+        if (finalSup.length > 0) {
+          setSuppliers(finalSup);
+          localStorage.setItem('inventory_suppliers', JSON.stringify(finalSup));
         }
       }
     } catch (err) {
       console.error('Gagal mengambil data dari database:', err);
       const savedItems = localStorage.getItem('inventory_items');
-      if (savedItems) {
-        setItems(JSON.parse(savedItems));
-      }
+      if (savedItems) setItems(JSON.parse(savedItems));
     } finally {
       setLoading(false);
     }
@@ -219,8 +231,7 @@ export function InventoryProvider({ children }) {
     }
   };
 
-  const addSupplier = (supplierData) => {
-    // Membuat ID angka kecil yang aman untuk database INTEGER (increment dari ID terbesar)
+  const addSupplier = async (supplierData) => {
     const nextId = suppliers.length > 0 ? Math.max(...suppliers.map(s => Number(s.id || s._id) || 0)) + 1 : 1;
     const newSup = { id: nextId, ...supplierData };
     
@@ -230,24 +241,55 @@ export function InventoryProvider({ children }) {
       return updated;
     });
     addTransaction('SUPPLIER', `Menambahkan supplier baru: ${supplierData.name}`);
+
+    try {
+      await fetch('/api/suppliers', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(supplierData),
+      });
+      fetchData();
+    } catch (err) {
+      console.error('API sync error (addSupplier):', err);
+    }
   };
 
-  const updateSupplier = (id, supplierData) => {
+  const updateSupplier = async (id, supplierData) => {
     setSuppliers((prev) => {
       const updated = prev.map((s) => (s.id === id || s._id === id ? { ...s, ...supplierData } : s));
       localStorage.setItem('inventory_suppliers', JSON.stringify(updated));
       return updated;
     });
     addTransaction('SUPPLIER', `Memperbarui data supplier: ${supplierData.name}`);
+
+    try {
+      await fetch(`/api/suppliers?id=${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(supplierData),
+      });
+      fetchData();
+    } catch (err) {
+      console.error('API sync error (updateSupplier):', err);
+    }
   };
 
-  const deleteSupplier = (id) => {
+  const deleteSupplier = async (id) => {
     setSuppliers((prev) => {
       const updated = prev.filter((s) => s.id !== id && s._id !== id);
       localStorage.setItem('inventory_suppliers', JSON.stringify(updated));
       return updated;
     });
     addTransaction('SUPPLIER', `Menghapus data supplier ID: ${id}`);
+
+    try {
+      await fetch(`/api/suppliers?id=${id}`, {
+        method: 'DELETE',
+      });
+      fetchData();
+    } catch (err) {
+      console.error('API sync error (deleteSupplier):', err);
+    }
   };
 
   return (
