@@ -24,7 +24,14 @@ export function InventoryForm({ editingItem, initialData, onCancelEdit, onClose,
       setCategory(activeEditing.category || '');
       setSku(activeEditing.sku || '');
       setStock(activeEditing.stock !== undefined ? activeEditing.stock : '');
-      setPrice(activeEditing.price !== undefined ? activeEditing.price : '');
+      
+      // Menghilangkan format .00 atau desimal dari database
+      const rawPrice = activeEditing.price;
+      const formattedPrice = (rawPrice !== undefined && rawPrice !== null && rawPrice !== '') 
+        ? (isNaN(Number(rawPrice)) ? rawPrice : Math.floor(Number(rawPrice))) 
+        : '';
+      setPrice(formattedPrice);
+
       setSupplierId(activeEditing.supplier_id || '');
     } else {
       setName('');
