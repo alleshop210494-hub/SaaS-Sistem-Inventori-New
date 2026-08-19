@@ -107,10 +107,10 @@ export function InventoryProvider({ children }) {
         if (savedItems) setItems(JSON.parse(savedItems));
       }
 
-      // Handle Suppliers dari Database
+      // Handle Suppliers dari Database (Diperbarui menyesuaikan format API { success: true, data: [...] })
       if (resSuppliers && resSuppliers.ok) {
         const supData = await resSuppliers.json();
-        const finalSup = Array.isArray(supData) ? supData : supData.suppliers || [];
+        const finalSup = Array.isArray(supData) ? supData : (supData.data || supData.suppliers || []);
         if (finalSup.length > 0) {
           setSuppliers(finalSup);
           localStorage.setItem('inventory_suppliers', JSON.stringify(finalSup));
