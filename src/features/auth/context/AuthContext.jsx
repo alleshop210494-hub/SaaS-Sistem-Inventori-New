@@ -1,41 +1,26 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext } from 'react';
+import { useUser, useClerk } from '@clerk/clerk-react';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(() => {
-    try {
-      const savedUser = localStorage.getItem('saas_user');
-      return savedUser ? JSON.parse(savedUser) : null;
-    } catch (e) {
-      return null;
-    }
-  });
+  const { user: clerkUser, isLoaded } = useUser();
+  const { signOut } = useClerk();
 
-  const login = async (email, password) => {
-    if (!email || !password) {
-      throw new Error('Email dan kata sandi wajib diisi.');
-    }
-    
-    // Simulasi proses login SaaS
-    const fakeUser = {
-      email,
-      name: email.split('@')[0],
-      role: 'Administrator'
-    };
-    
-    setUser(fakeUser);
-    localStorage.setItem('saas_user', JSON.stringify(fakeUser));
-    return fakeUser;
-  };
+  // Menyesuaikan format user agar kompatibel dengan sistem inventori Anda
+  const user = clerkUser ? {
+    id: clerkUser.id,
+    email: clerkUser.primaryEmailAddress?.emailAddress,
+    name: clerkUser.fullName || clerkUser.primaryEmailAddress?.emailAddress?.split('@')[0],
+    role: 'Administrator'
+  } : null;
 
   const logout = () => {
-    setUser(null);
-    localStorage.removeItem('saas_user');
+    signOut();
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout }}>
+    <AuthContext.Provider value={{ user, logout, isLoaded }}>
       {children}
     </AuthContext.Provider>
   );
@@ -43,12 +28,11 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  // Pengaman jika terpanggil di luar Provider agar tidak merusak aplikasi (tidak undefined)
   if (!context) {
     return {
       user: null,
-      login: async () => {},
-      logout: () => {}
+      logout: () => {},
+      isLoaded: true
     };
   }
   return context;
