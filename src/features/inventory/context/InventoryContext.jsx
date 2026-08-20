@@ -9,34 +9,12 @@ export function InventoryProvider({ children }) {
   const [suppliers, setSuppliers] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [companyName, setCompanyName] = useState('PT Antariksa');
-  
-  // State baru untuk pengaturan kolom kustom / dinamis berdasarkan jenis bisnis
-  const [customColumns, setCustomColumns] = useState([
-    { key: 'sku', label: 'SKU', visible: true },
-    { key: 'category', label: 'Kategori', visible: true },
-    { key: 'stock', label: 'Stok', visible: true },
-    { key: 'price', label: 'Harga', visible: true }
-  ]);
-
   const [loading, setLoading] = useState(true);
 
   const loadInitialData = () => {
     const savedCompanyName = localStorage.getItem('inventory_company_name');
     if (savedCompanyName) {
       setCompanyName(savedCompanyName);
-    }
-
-    // Memuat konfigurasi kolom kustom yang tersimpan
-    const savedCustomColumns = localStorage.getItem('inventory_custom_columns');
-    if (savedCustomColumns) {
-      try {
-        const parsedCols = JSON.parse(savedCustomColumns);
-        if (Array.isArray(parsedCols) && parsedCols.length > 0) {
-          setCustomColumns(parsedCols);
-        }
-      } catch (e) {
-        console.error('Gagal memparsing custom columns:', e);
-      }
     }
 
     const savedSuppliers = localStorage.getItem('inventory_suppliers');
@@ -85,12 +63,6 @@ export function InventoryProvider({ children }) {
   const handleSetCompanyName = (name) => {
     setCompanyName(name);
     localStorage.setItem('inventory_company_name', name);
-  };
-
-  // Fungsi untuk memperbarui dan menyimpan kolom kustom pilihan user
-  const handleUpdateCustomColumns = (newColumns) => {
-    setCustomColumns(newColumns);
-    localStorage.setItem('inventory_custom_columns', JSON.stringify(newColumns));
   };
 
   const addTransaction = (type, desc) => {
@@ -176,8 +148,7 @@ export function InventoryProvider({ children }) {
     const completeItemData = {
       ...itemData,
       user_id: userId,
-      added_by: userEmail,
-      custom_fields: itemData.custom_fields || {}
+      added_by: userEmail
     };
 
     const newItem = { id: Date.now(), ...completeItemData };
@@ -208,8 +179,7 @@ export function InventoryProvider({ children }) {
     const completeItemData = {
       ...itemData,
       user_id: itemData.user_id || userId,
-      added_by: userEmail,
-      custom_fields: itemData.custom_fields || {}
+      added_by: userEmail
     };
 
     setItems((prev) => {
@@ -283,7 +253,7 @@ export function InventoryProvider({ children }) {
       localStorage.setItem('inventory_suppliers', JSON.stringify(updated));
       return updated;
     });
-    addTransaction('SUPPLier', `Memperbarui data supplier: ${supplierData.name}`);
+    addTransaction('SUPPLIER', `Memperbarui data supplier: ${supplierData.name}`);
 
     try {
       await fetch(`/api/suppliers?id=${id}`, {
@@ -323,8 +293,6 @@ export function InventoryProvider({ children }) {
         transactions,
         companyName,
         setCompanyName: handleSetCompanyName,
-        customColumns,               // Ditambahkan untuk fitur custom table
-        updateCustomColumns: handleUpdateCustomColumns, // Ditambahkan untuk fitur custom table
         loading,
         addItem,
         updateItem,
