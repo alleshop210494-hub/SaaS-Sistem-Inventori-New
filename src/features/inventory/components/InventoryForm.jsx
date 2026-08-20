@@ -7,6 +7,7 @@ export function InventoryForm({ editingItem, initialData, onCancelEdit, onClose,
   const addItem = inventory.addItem;
   const updateItem = inventory.updateItem;
   const suppliers = inventory.suppliers || [];
+  const customColumns = inventory.customColumns || [];
 
   const { user } = useUser();
   const activeEditing = editingItem || initialData;
@@ -17,6 +18,14 @@ export function InventoryForm({ editingItem, initialData, onCancelEdit, onClose,
   const [stock, setStock] = useState('');
   const [price, setPrice] = useState('');
   const [supplierId, setSupplierId] = useState('');
+  
+  // State baru untuk menampung nilai dari kolom kustom/dinamis
+  const [customFields, setCustomFields] = useState({});
+
+  // Filter kolom kustom yang bukan merupakan field standar form
+  const customCols = customColumns.filter(
+    (col) => !['name', 'category', 'sku', 'stock', 'price'].includes(col.key)
+  );
 
   useEffect(() => {
     if (activeEditing) {
@@ -25,7 +34,6 @@ export function InventoryForm({ editingItem, initialData, onCancelEdit, onClose,
       setSku(activeEditing.sku || '');
       setStock(activeEditing.stock !== undefined ? activeEditing.stock : '');
       
-      // Menghilangkan format .00 atau desimal dari database
       const rawPrice = activeEditing.price;
       const formattedPrice = (rawPrice !== undefined && rawPrice !== null && rawPrice !== '') 
         ? (isNaN(Number(rawPrice)) ? rawPrice : Math.floor(Number(rawPrice))) 
@@ -33,6 +41,7 @@ export function InventoryForm({ editingItem, initialData, onCancelEdit, onClose,
       setPrice(formattedPrice);
 
       setSupplierId(activeEditing.supplier_id || '');
+      setCustomFields(activeEditing.custom_fields || {});
     } else {
       setName('');
       setCategory('');
@@ -40,8 +49,16 @@ export function InventoryForm({ editingItem, initialData, onCancelEdit, onClose,
       setStock('');
       setPrice('');
       setSupplierId('');
+      setCustomFields({});
     }
   }, [activeEditing]);
+
+  const handleCustomFieldChange = (key, value) => {
+    setCustomFields((prev) => ({
+      ...prev,
+      [key]: value
+    }));
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -55,7 +72,6 @@ export function InventoryForm({ editingItem, initialData, onCancelEdit, onClose,
     const parsedPrice = Number(cleanPriceString);
     const parsedStock = Number(stock);
 
-    // Ambil email user login secara konsisten dengan fallback mutlak ke email Anda
     let userEmail = 'alleshop210494@gmail.com';
     let userId = 'user-alleshop';
 
@@ -96,6 +112,7 @@ export function InventoryForm({ editingItem, initialData, onCancelEdit, onClose,
       supplier_id: supplierId ? Number(supplierId) : null,
       user_id: userId,
       added_by: userEmail,
+      custom_fields: customFields // Mengirim data custom fields ke backend/database
     };
 
     const submitFunc = onSubmit || onSave;
@@ -127,6 +144,7 @@ export function InventoryForm({ editingItem, initialData, onCancelEdit, onClose,
         setStock('');
         setPrice('');
         setSupplierId('');
+        setCustomFields({});
       }
     } catch (error) {
       console.error('Error saat menyimpan form:', error);
@@ -222,6 +240,21 @@ export function InventoryForm({ editingItem, initialData, onCancelEdit, onClose,
             ))}
           </select>
         </div>
+
+        {/* Render Kolom Kustom Dinamis Secara Otomatis */}
+        {customCols.map((col) => (
+          <div key={col.key}>
+            <label className="block text-xs font-medium text-gray-500 uppercase mb-1">{col.label}</label>
+            <input
+              type="text"
+              value={customFields[col.key] || ''}
+              onChange={(e) => handleCustomFieldChange(col.key, e.target.value)}
+              placeholder={`Masukkan ${col.label}...`}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
+            />
+          </div>
+        ))}
+
         <div className="md:col-span-3 flex justify-end gap-2 mt-2">
           {(onCancelEdit || onClose) && (
             <button

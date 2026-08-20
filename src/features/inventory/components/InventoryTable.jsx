@@ -2,9 +2,19 @@ import React, { useState } from 'react';
 import { useInventory } from '../context/InventoryContext';
 
 export function InventoryTable({ onEdit }) {
-  const { items = [], suppliers = [], companyName = 'Perusahaan Saya', deleteItem } = useInventory() || {};
+  const { 
+    items = [], 
+    suppliers = [], 
+    companyName = 'Perusahaan Saya', 
+    deleteItem, 
+    customColumns = [], 
+    updateCustomColumns 
+  } = useInventory() || {};
+
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('ALL');
+  const [showColumnModal, setShowColumnModal] = useState(false);
+  const [newColLabel, setNewColLabel] = useState('');
 
   const filteredItems = items.filter((item) => {
     const matchesSearch = 
@@ -24,7 +34,6 @@ export function InventoryTable({ onEdit }) {
     if (item.vendor) return item.vendor;
     if (item.supplier_name) return item.supplier_name;
 
-    // Jika menyimpan supplier_id, cari namanya di daftar suppliers
     if (item.supplier_id && suppliers.length > 0) {
       const matched = suppliers.find(s => String(s.id || s._id) === String(item.supplier_id));
       if (matched) return matched.name;
@@ -33,19 +42,60 @@ export function InventoryTable({ onEdit }) {
     return '-';
   };
 
+  // Helper untuk mengambil nilai sel dari kolom standar maupun custom_fields
+  const getItemValue = (item, key) => {
+    if (['name', 'category', 'sku', 'stock', 'price'].includes(key)) {
+      if (key === 'price') return `Rp ${Number(item[key] || 0).toLocaleString('id-ID')}`;
+      return item[key] !== undefined && item[key] !== null ? item[key] : '-';
+    }
+    const customVal = item.custom_fields?.[key];
+    return customVal !== undefined && customVal !== null && customVal !== '' ? customVal : '-';
+  };
+
+  const toggleColumnVisibility = (key) => {
+    const updated = customColumns.map(col => col.key === key ? { ...col, visible: !col.visible } : col);
+    updateCustomColumns(updated);
+  };
+
+  const addCustomColumn = (e) => {
+    e.preventDefault();
+    if (!newColLabel.trim()) return;
+    const key = newColLabel.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+    if (customColumns.some(c => c.key === key)) {
+      alert('Kolom dengan nama tersebut sudah ada.');
+      return;
+    }
+    const updated = [...customColumns, { key, label: newColLabel.trim(), visible: true }];
+    updateCustomColumns(updated);
+    setNewColLabel('');
+  };
+
+  const removeCustomColumn = (key) => {
+    const updated = customColumns.filter(c => c.key !== key);
+    updateCustomColumns(updated);
+  };
+
+  const visibleColumns = customColumns.filter(c => c.visible);
+
   const exportToExcel = () => {
     if (filteredItems.length === 0) {
       alert('Tidak ada data untuk diexport.');
       return;
     }
-    const dataToExport = filteredItems.map(item => ({
-      'Nama Barang': item.name,
-      'Kategori': item.category,
-      'SKU / Kode': item.sku,
-      'Stok': item.stock,
-      'Harga Satuan (Rp)': item.price,
-      'Supplier': getSupplierName(item)
-    }));
+    const dataToExport = filteredItems.map(item => {
+      const rowData = { 'Nama Barang': item.name };
+      visibleColumns.forEach(col => {
+        let val = item[col.key];
+        if (col.key === 'price') val = Number(item.price || 0);
+        else if (!['category', 'sku', 'stock'].includes(col.key)) {
+          val = item.custom_fields?.[col.key] || '-';
+        }
+        rowData[col.label] = val;
+      });
+      rowData['Supplier'] = getSupplierName(item);
+      return rowData;
+    });
+
     const keys = Object.keys(dataToExport[0]);
     const csvContent = [
       keys.join(','),
@@ -68,14 +118,14 @@ export function InventoryTable({ onEdit }) {
       return;
     }
     const printWindow = window.open('', '_blank');
-    const headers = ['No', 'Nama Barang', 'Kategori', 'SKU / Kode', 'Stok', 'Harga Satuan (Rp)', 'Supplier'];
+    const headers = ['No', 'Nama Barang', ...visibleColumns.map(c => c.label), 'Supplier'];
     const rows = filteredItems.map((item, idx) => [
       idx + 1,
       item.name,
-      item.category,
-      item.sku,
-      item.stock,
-      Number(item.price || 0).toLocaleString('id-ID'),
+      ...visibleColumns.map(c => {
+        if (c.key === 'price') return Number(item.price || 0).toLocaleString('id-ID');
+        return getItemValue(item, c.key);
+      }),
       getSupplierName(item)
     ]);
 
@@ -131,9 +181,7 @@ export function InventoryTable({ onEdit }) {
           </div>
         </div>
         <script>
-          window.onload = function() {
-            window.print();
-          }
+          window.onload = function() { window.print(); }
         </script>
       </body>
       </html>
@@ -166,7 +214,14 @@ export function InventoryTable({ onEdit }) {
             ))}
           </select>
         </div>
-        <div className="flex items-center gap-2 w-full md:w-auto justify-end">
+        <div className="flex items-center gap-2 w-full md:w-auto justify-end flex-wrap">
+          <button
+            type="button"
+            onClick={() => setShowColumnModal(true)}
+            className="px-3.5 py-2 rounded-lg text-xs font-bold shadow-sm transition-colors flex items-center gap-1.5 bg-slate-800 text-white hover:bg-slate-900"
+          >
+            ⚙️ Atur Kolom
+          </button>
           <button
             type="button"
             onClick={exportToExcel}
@@ -186,15 +241,77 @@ export function InventoryTable({ onEdit }) {
         </div>
       </div>
 
+      {/* Modal Pengaturan Kolom Kustom */}
+      {showColumnModal && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-gray-100">
+            <h4 className="text-lg font-bold text-gray-800 mb-2">Pengaturan Kolom Kustom</h4>
+            <p className="text-xs text-gray-500 mb-4">
+              Atur kolom yang ingin ditampilkan agar sesuai dengan jenis bisnis Anda (misal: Toko Baju menambah Ukuran/Warna, Elektronik menambah Garansi).
+            </p>
+
+            <div className="space-y-2 max-h-60 overflow-y-auto mb-4 pr-1">
+              {customColumns.map((col) => (
+                <div key={col.key} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl border border-gray-100">
+                  <label className="flex items-center gap-2.5 text-sm font-medium text-gray-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={col.visible}
+                      onChange={() => toggleColumnVisibility(col.key)}
+                      className="w-4 h-4 rounded text-slate-900 focus:ring-slate-900"
+                    />
+                    {col.label}
+                  </label>
+                  {!['sku', 'category', 'stock', 'price'].includes(col.key) && (
+                    <button
+                      type="button"
+                      onClick={() => removeCustomColumn(col.key)}
+                      className="text-xs text-red-500 hover:text-red-700 font-semibold px-2 py-1"
+                    >
+                      Hapus
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <form onSubmit={addCustomColumn} className="flex gap-2 mb-6">
+              <input
+                type="text"
+                placeholder="Nama kolom baru (cth: Warna)..."
+                value={newColLabel}
+                onChange={(e) => setNewColLabel(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
+              />
+              <button
+                type="submit"
+                className="px-4 py-2 bg-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-colors"
+              >
+                Tambah
+              </button>
+            </form>
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setShowColumnModal(false)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-xs font-bold hover:bg-gray-200 transition-colors"
+              >
+                Selesai & Tutup
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-gray-50 text-gray-400 text-xs uppercase tracking-wider border-b border-gray-100">
               <th className="py-3 px-6 font-medium">Nama Barang</th>
-              <th className="py-3 px-6 font-medium">Kategori</th>
-              <th className="py-3 px-6 font-medium">SKU / Kode</th>
-              <th className="py-3 px-6 font-medium">Stok</th>
-              <th className="py-3 px-6 font-medium">Harga Satuan</th>
+              {visibleColumns.map((col) => (
+                <th key={col.key} className="py-3 px-6 font-medium">{col.label}</th>
+              ))}
               <th className="py-3 px-6 font-medium">Supplier</th>
               <th className="py-3 px-6 font-medium text-right">Aksi</th>
             </tr>
@@ -202,7 +319,7 @@ export function InventoryTable({ onEdit }) {
           <tbody className="divide-y divide-gray-100 text-sm text-gray-700">
             {filteredItems.length === 0 ? (
               <tr>
-                <td colSpan="7" className="py-8 text-center text-gray-400">
+                <td colSpan={visibleColumns.length + 3} className="py-8 text-center text-gray-400">
                   Tidak ada data barang ditemukan.
                 </td>
               </tr>
@@ -212,10 +329,11 @@ export function InventoryTable({ onEdit }) {
                 return (
                   <tr key={id || Math.random()} className="hover:bg-gray-50/50 transition-colors">
                     <td className="py-4 px-6 font-medium text-gray-900">{item.name}</td>
-                    <td className="py-4 px-6 text-gray-600">{item.category}</td>
-                    <td className="py-4 px-6 text-gray-500 font-mono text-xs">{item.sku}</td>
-                    <td className="py-4 px-6 font-semibold text-gray-800">{item.stock}</td>
-                    <td className="py-4 px-6 text-gray-600">Rp {Number(item.price || 0).toLocaleString('id-ID')}</td>
+                    {visibleColumns.map((col) => (
+                      <td key={col.key} className={`py-4 px-6 text-gray-600 ${col.key === 'sku' ? 'font-mono text-xs' : col.key === 'stock' ? 'font-semibold text-gray-800' : ''}`}>
+                        {getItemValue(item, col.key)}
+                      </td>
+                    ))}
                     <td className="py-4 px-6 text-gray-600">{getSupplierName(item)}</td>
                     <td className="py-4 px-6 text-right space-x-2">
                       <button
