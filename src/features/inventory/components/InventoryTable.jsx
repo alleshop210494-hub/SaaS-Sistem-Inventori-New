@@ -42,12 +42,19 @@ export function InventoryTable({ onEdit }) {
     return '-';
   };
 
-  // Helper untuk mengambil nilai sel dari kolom standar maupun custom_fields
+  // Helper untuk mengambil nilai sel, termasuk kalkulasi otomatis Total Harga
   const getItemValue = (item, key) => {
+    // Jika kolom adalah Total Harga (kalkulasi otomatis Stok x Harga Satuan)
+    if (key === 'total_harga' || key === 'total') {
+      const total = (Number(item.stock) || 0) * (Number(item.price) || 0);
+      return `Rp ${Number(total).toLocaleString('id-ID')}`;
+    }
+
     if (['name', 'category', 'sku', 'stock', 'price'].includes(key)) {
-      if (key === 'price') return `Rp ${Number(item[key] || 0).toLocaleString('id-ID')}`;
+      if (key === 'price') return `Rp ${Number(item.price || 0).toLocaleString('id-ID')}`;
       return item[key] !== undefined && item[key] !== null ? item[key] : '-';
     }
+    
     const customVal = item.custom_fields?.[key];
     return customVal !== undefined && customVal !== null && customVal !== '' ? customVal : '-';
   };
@@ -86,8 +93,11 @@ export function InventoryTable({ onEdit }) {
       const rowData = { 'Nama Barang': item.name };
       visibleColumns.forEach(col => {
         let val = item[col.key];
-        if (col.key === 'price') val = Number(item.price || 0);
-        else if (!['category', 'sku', 'stock'].includes(col.key)) {
+        if (col.key === 'price') {
+          val = Number(item.price || 0);
+        } else if (col.key === 'total_harga' || col.key === 'total') {
+          val = (Number(item.stock) || 0) * (Number(item.price) || 0);
+        } else if (!['category', 'sku', 'stock'].includes(col.key)) {
           val = item.custom_fields?.[col.key] || '-';
         }
         rowData[col.label] = val;
@@ -124,6 +134,10 @@ export function InventoryTable({ onEdit }) {
       item.name,
       ...visibleColumns.map(c => {
         if (c.key === 'price') return Number(item.price || 0).toLocaleString('id-ID');
+        if (c.key === 'total_harga' || c.key === 'total') {
+          const tot = (Number(item.stock) || 0) * (Number(item.price) || 0);
+          return tot.toLocaleString('id-ID');
+        }
         return getItemValue(item, c.key);
       }),
       getSupplierName(item)
@@ -247,7 +261,7 @@ export function InventoryTable({ onEdit }) {
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-gray-100">
             <h4 className="text-lg font-bold text-gray-800 mb-2">Pengaturan Kolom Kustom</h4>
             <p className="text-xs text-gray-500 mb-4">
-              Atur kolom yang ingin ditampilkan agar sesuai dengan jenis bisnis Anda (misal: Toko Baju menambah Ukuran/Warna, Elektronik menambah Garansi).
+              Atur kolom yang ingin ditampilkan (Contoh: Tambah kolom &quot;Total Harga&quot; untuk kalkulasi otomatis stok $\times$ harga).
             </p>
 
             <div className="space-y-2 max-h-60 overflow-y-auto mb-4 pr-1">
@@ -278,7 +292,7 @@ export function InventoryTable({ onEdit }) {
             <form onSubmit={addCustomColumn} className="flex gap-2 mb-6">
               <input
                 type="text"
-                placeholder="Nama kolom baru (cth: Warna)..."
+                placeholder="Nama kolom (cth: Total Harga)..."
                 value={newColLabel}
                 onChange={(e) => setNewColLabel(e.target.value)}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"

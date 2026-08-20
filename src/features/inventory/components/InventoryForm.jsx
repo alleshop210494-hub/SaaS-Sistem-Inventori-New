@@ -19,12 +19,11 @@ export function InventoryForm({ editingItem, initialData, onCancelEdit, onClose,
   const [price, setPrice] = useState('');
   const [supplierId, setSupplierId] = useState('');
   
-  // State baru untuk menampung nilai dari kolom kustom/dinamis
   const [customFields, setCustomFields] = useState({});
 
-  // Filter kolom kustom yang bukan merupakan field standar form
+  // Filter kolom kustom, mengecualikan kolom standar dan kolom kalkulasi otomatis (total_harga / total)
   const customCols = customColumns.filter(
-    (col) => !['name', 'category', 'sku', 'stock', 'price'].includes(col.key)
+    (col) => !['name', 'category', 'sku', 'stock', 'price', 'total_harga', 'total'].includes(col.key)
   );
 
   useEffect(() => {
@@ -112,7 +111,7 @@ export function InventoryForm({ editingItem, initialData, onCancelEdit, onClose,
       supplier_id: supplierId ? Number(supplierId) : null,
       user_id: userId,
       added_by: userEmail,
-      custom_fields: customFields // Mengirim data custom fields ke backend/database
+      custom_fields: customFields
     };
 
     const submitFunc = onSubmit || onSave;
@@ -241,7 +240,7 @@ export function InventoryForm({ editingItem, initialData, onCancelEdit, onClose,
           </select>
         </div>
 
-        {/* Render Kolom Kustom Dinamis Secara Otomatis */}
+        {/* Render Kolom Kustom Dinamis Secara Otomatis (Kolom seperti Total Harga di-skip karena otomatis) */}
         {customCols.map((col) => (
           <div key={col.key}>
             <label className="block text-xs font-medium text-gray-500 uppercase mb-1">{col.label}</label>
