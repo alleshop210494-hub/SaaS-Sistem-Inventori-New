@@ -10,7 +10,7 @@ export function Header({ activeTab }) {
         {activeTab === 'opname' && 'Stock Opname'}
         {activeTab === 'charts' && 'Overview & Analytics'}
       </h2>
-      <div className="text-xs text-gray-400 font-medium">System Workspace 2026</div>
+      <div className="text-xs text-gray-400 font-medium">System Inventory</div>
     </header>
   );
 }
