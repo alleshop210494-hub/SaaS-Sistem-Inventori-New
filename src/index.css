@@ -2,8 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Tambahkan styling kustom Anda di bawah ini */
-
 /* Menyembunyikan footer, badge development, dan branding Clerk secara menyeluruh */
 .cl-navbarFooter,
 .cl-footer,
@@ -13,9 +11,8 @@
   display: none !important;
 }
 
-/* Menargetkan kontainer bagian paling bawah pada sidebar UserProfile Clerk */
+/* Menargetkan kontainer bagian bawah pada sidebar UserProfile Clerk */
 .cl-userProfile-sidebar > div:last-child,
-[class*="userProfile"] [class*="sidebar"] div:has(> *:contains("Secured")),
 [class*="userProfile"] div[class*="sidebarFooter"] {
   display: none !important;
 }
