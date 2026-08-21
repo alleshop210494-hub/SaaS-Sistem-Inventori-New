@@ -1,33 +1,44 @@
-import React from 'react';
-import { SignIn } from '@clerk/clerk-react';
+import React, { useState } from 'react';
+import { SignIn, SignUp } from '@clerk/clerk-react';
 
 export default function AuthScreen() {
+  const [isSignUp, setIsSignUp] = useState(false);
+
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center items-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8 flex flex-col items-center">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-4">
+      <div className="w-full max-w-md bg-white rounded-xl shadow-lg p-6">
         
-        {/* Header Branding SaaS Anda */}
-        <div className="text-center">
-          <div className="mx-auto h-12 w-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white font-bold text-xl shadow-md mb-4">
-            SI
-          </div>
-          <h2 className="text-3xl font-extrabold text-gray-900">
-            Sistem Inventori SaaS
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Silakan masuk ke akun perusahaan Anda untuk melanjutkan
-          </p>
+        {/* Tombol Tab Pilihan Login / Sign Up */}
+        <div className="flex justify-center mb-6 border-b pb-3 gap-4">
+          <button
+            onClick={() => setIsSignUp(false)}
+            className={`px-6 py-2 font-semibold rounded-lg transition-all ${
+              !isSignUp 
+                ? 'bg-blue-600 text-white shadow-md' 
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Login
+          </button>
+          <button
+            onClick={() => setIsSignUp(true)}
+            className={`px-6 py-2 font-semibold rounded-lg transition-all ${
+              isSignUp 
+                ? 'bg-blue-600 text-white shadow-md' 
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Sign Up
+          </button>
         </div>
 
-        {/* Komponen Resmi Clerk dengan appearance untuk menyembunyikan branding */}
-        <div className="w-full flex justify-center mt-4">
-          <SignIn 
-            appearance={{
-              elements: {
-                footer: "hidden",
-              }
-            }}
-          />
+        {/* Komponen Clerk untuk Login atau Sign Up */}
+        <div className="flex justify-center">
+          {isSignUp ? (
+            <SignUp routing="hash" />
+          ) : (
+            <SignIn routing="hash" />
+          )}
         </div>
 
       </div>
