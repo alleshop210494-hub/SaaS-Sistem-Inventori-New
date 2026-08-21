@@ -3,311 +3,199 @@ import { useUser } from '@clerk/clerk-react';
 
 const InventoryContext = createContext();
 
-export function InventoryProvider({ children }) {
-  const { user, isLoaded, isSignedIn } = useUser();
+export const InventoryProvider = ({ children }) => {
+  const { user } = useUser();
+  const userId = user?.primaryEmailAddress?.emailAddress || user?.id;
+
   const [items, setItems] = useState([]);
   const [suppliers, setSuppliers] = useState([]);
   const [transactions, setTransactions] = useState([]);
-  const [companyName, setCompanyName] = useState('PT Antariksa');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
-  const loadInitialData = () => {
-    const savedCompanyName = localStorage.getItem('inventory_company_name');
-    if (savedCompanyName) {
-      setCompanyName(savedCompanyName);
-    }
-
-    const savedSuppliers = localStorage.getItem('inventory_suppliers');
-    if (savedSuppliers) {
-      try {
-        const parsedSup = JSON.parse(savedSuppliers);
-        if (Array.isArray(parsedSup) && parsedSup.length > 0) {
-          setSuppliers(parsedSup);
-        } else {
-          setSuppliers([
-            { id: 1, name: 'PT Teknologi Jaya', contact: '081234567890', email: 'info@teklogijaya.com', address: 'Jakarta Selatan' },
-            { id: 2, name: 'CV Mitra Makmur', contact: '089876543210', email: 'sales@mitramakmur.com', address: 'Surabaya' }
-          ]);
-        }
-      } catch (e) {
-        setSuppliers([]);
-      }
-    } else {
-      const defaultSuppliers = [
-        { id: 1, name: 'PT Teknologi Jaya', contact: '081234567890', email: 'info@teklogijaya.com', address: 'Jakarta Selatan' },
-        { id: 2, name: 'CV Mitra Makmur', contact: '089876543210', email: 'sales@mitramakmur.com', address: 'Surabaya' }
-      ];
-      setSuppliers(defaultSuppliers);
-      localStorage.setItem('inventory_suppliers', JSON.stringify(defaultSuppliers));
-    }
-
-    const savedTransactions = localStorage.getItem('inventory_transactions');
-    if (savedTransactions) {
-      try {
-        const parsedTx = JSON.parse(savedTransactions);
-        if (Array.isArray(parsedTx)) {
-          setTransactions(parsedTx);
-        }
-      } catch (e) {
-        setTransactions([]);
-      }
-    } else {
-      const defaultTx = [
-        { id: 1, type: 'MASUK', desc: 'Inisialisasi sistem inventori awal', time: new Date().toLocaleString() }
-      ];
-      setTransactions(defaultTx);
-      localStorage.setItem('inventory_transactions', JSON.stringify(defaultTx));
-    }
-  };
-
-  const handleSetCompanyName = (name) => {
-    setCompanyName(name);
-    localStorage.setItem('inventory_company_name', name);
-  };
-
-  const addTransaction = (type, desc) => {
-    const newTx = {
-      id: Date.now(),
-      type,
-      desc,
-      time: new Date().toLocaleString()
-    };
-    setTransactions((prev) => {
-      const updated = [newTx, ...prev];
-      localStorage.setItem('inventory_transactions', JSON.stringify(updated));
-      return updated;
-    });
-  };
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 4000);
-
-      const [resItems, resSuppliers] = await Promise.all([
-        fetch('/api/items', { signal: controller.signal }),
-        fetch('/api/suppliers', { signal: controller.signal }).catch(() => null)
-      ]);
-      
-      clearTimeout(timeoutId);
-
-      if (resItems.ok) {
-        const data = await resItems.json();
-        const finalData = Array.isArray(data) ? data : data.items || [];
-        setItems(finalData);
-        localStorage.setItem('inventory_items', JSON.stringify(finalData));
-      } else {
-        const savedItems = localStorage.getItem('inventory_items');
-        if (savedItems) setItems(JSON.parse(savedItems));
-      }
-
-      if (resSuppliers && resSuppliers.ok) {
-        const supData = await resSuppliers.json();
-        const finalSup = Array.isArray(supData) ? supData : (supData.data || supData.suppliers || []);
-        if (finalSup.length > 0) {
-          setSuppliers(finalSup);
-          localStorage.setItem('inventory_suppliers', JSON.stringify(finalSup));
-        }
-      }
-    } catch (err) {
-      console.error('Gagal mengambil data dari database:', err);
-      const savedItems = localStorage.getItem('inventory_items');
-      if (savedItems) setItems(JSON.parse(savedItems));
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  // Mengambil semua data langsung dari database Neon via API setiap kali user aktif/berubah
   useEffect(() => {
-    loadInitialData();
-    fetchData();
-  }, []);
-
-  const resolveUserEmail = () => {
-    let email = 
-      user?.primaryEmailAddress?.emailAddress || 
-      user?.emailAddresses?.[0]?.emailAddress || 
-      user?.username;
-
-    if (!email || email === 'Unknown User' || email === 'Authenticated User') {
-      const savedEmail = localStorage.getItem('email') || localStorage.getItem('userEmail');
-      if (savedEmail && savedEmail.includes('@')) {
-        email = savedEmail;
-      } else {
-        email = 'alleshop210494@gmail.com';
-      }
+    if (!userId) {
+      setItems([]);
+      setSuppliers([]);
+      setTransactions([]);
+      return;
     }
-    return email;
-  };
 
-  const addItem = async (itemData) => {
-    const userEmail = resolveUserEmail();
-    const userId = user?.id || 'user-alleshop';
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [itemsRes, suppliersRes, transactionsRes] = await Promise.all([
+          fetch(`/api/items?user_id=${encodeURIComponent(userId)}`),
+          fetch(`/api/suppliers?user_id=${encodeURIComponent(userId)}`),
+          fetch(`/api/transactions?user_id=${encodeURIComponent(userId)}`)
+        ]);
 
-    const completeItemData = {
-      ...itemData,
-      user_id: userId,
-      added_by: userEmail
+        if (itemsRes.ok) {
+          const itemsData = await itemsRes.json();
+          setItems(Array.isArray(itemsData) ? itemsData : itemsData.data || []);
+        }
+        if (suppliersRes.ok) {
+          const suppliersData = await suppliersRes.json();
+          setSuppliers(Array.isArray(suppliersData) ? suppliersData : suppliersData.data || []);
+        }
+        if (transactionsRes.ok) {
+          const transactionsData = await transactionsRes.json();
+          setTransactions(Array.isArray(transactionsData) ? transactionsData : transactionsData.data || []);
+        }
+      } catch (error) {
+        console.error('Gagal mengambil data dari server:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
-    const newItem = { id: Date.now(), ...completeItemData };
-    setItems((prev) => {
-      const updated = [newItem, ...prev];
-      localStorage.setItem('inventory_items', JSON.stringify(updated));
-      return updated;
-    });
+    fetchData();
+  }, [userId]);
 
-    addTransaction('TAMBAH', `Menambahkan barang baru: ${itemData.name} oleh ${userEmail} (Stok: ${itemData.stock})`);
-
+  const addItem = async (newItemData) => {
+    if (!userId) return;
     try {
-      await fetch('/api/items', {
+      const res = await fetch('/api/items', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(completeItemData),
+        body: JSON.stringify({ ...newItemData, user_id: userId })
       });
-      fetchData();
-    } catch (err) {
-      console.error('API sync error (addItem):', err);
+      if (res.ok) {
+        const created = await res.json();
+        const actualItem = created.data || created;
+        setItems(prev => [actualItem, ...prev]);
+        return actualItem;
+      }
+    } catch (error) {
+      console.error('Gagal menambah item:', error);
     }
   };
 
-  const updateItem = async (id, itemData) => {
-    const userEmail = resolveUserEmail();
-    const userId = user?.id || 'user-alleshop';
-
-    const completeItemData = {
-      ...itemData,
-      user_id: itemData.user_id || userId,
-      added_by: userEmail
-    };
-
-    setItems((prev) => {
-      const updated = prev.map((item) => (item.id === id || item._id === id ? { ...item, ...completeItemData } : item));
-      localStorage.setItem('inventory_items', JSON.stringify(updated));
-      return updated;
-    });
-
-    addTransaction('UPDATE', `Memperbarui data barang: ${itemData.name || 'ID ' + id}`);
-
+  const updateItem = async (id, updatedData) => {
+    if (!userId) return;
     try {
-      await fetch(`/api/items?id=${id}`, {
+      const res = await fetch(`/api/items?id=${id}&user_id=${encodeURIComponent(userId)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(completeItemData),
+        body: JSON.stringify({ ...updatedData, user_id: userId })
       });
-      fetchData();
-    } catch (err) {
-      console.error('API sync error (updateItem):', err);
+      if (res.ok) {
+        const updated = await res.json();
+        const actualItem = updated.data || updated;
+        setItems(prev => prev.map(item => item.id === id ? actualItem : item));
+        return actualItem;
+      }
+    } catch (error) {
+      console.error('Gagal memperbarui item:', error);
     }
   };
 
   const deleteItem = async (id) => {
-    let targetName = 'ID ' + id;
-    setItems((prev) => {
-      const found = prev.find((item) => item.id === id || item._id === id);
-      if (found) targetName = found.name;
-      const updated = prev.filter((item) => item.id !== id && item._id !== id);
-      localStorage.setItem('inventory_items', JSON.stringify(updated));
-      return updated;
-    });
-
-    addTransaction('HAPUS', `Menghapus barang dari inventori: ${targetName}`);
-
+    if (!userId) return;
     try {
-      await fetch(`/api/items?id=${id}`, {
+      const res = await fetch(`/api/items?id=${id}&user_id=${encodeURIComponent(userId)}`, {
         method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId })
       });
-      fetchData();
-    } catch (err) {
-      console.error('API sync error (deleteItem):', err);
+      if (res.ok) {
+        setItems(prev => prev.filter(item => item.id !== id));
+      }
+    } catch (error) {
+      console.error('Gagal menghapus item:', error);
     }
   };
 
   const addSupplier = async (supplierData) => {
-    const nextId = suppliers.length > 0 ? Math.max(...suppliers.map(s => Number(s.id || s._id) || 0)) + 1 : 1;
-    const newSup = { id: nextId, ...supplierData };
-    
-    setSuppliers((prev) => {
-      const updated = [newSup, ...prev];
-      localStorage.setItem('inventory_suppliers', JSON.stringify(updated));
-      return updated;
-    });
-    addTransaction('SUPPLIER', `Menambahkan supplier baru: ${supplierData.name}`);
-
+    if (!userId) return;
     try {
-      await fetch('/api/suppliers', {
+      const res = await fetch('/api/suppliers', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(supplierData),
+        body: JSON.stringify({ ...supplierData, user_id: userId })
       });
-      fetchData();
-    } catch (err) {
-      console.error('API sync error (addSupplier):', err);
+      if (res.ok) {
+        const created = await res.json();
+        const actualSupplier = created.data || created;
+        setSuppliers(prev => [actualSupplier, ...prev]);
+        return actualSupplier;
+      }
+    } catch (error) {
+      console.error('Gagal menambah supplier:', error);
     }
   };
 
   const updateSupplier = async (id, supplierData) => {
-    setSuppliers((prev) => {
-      const updated = prev.map((s) => (s.id === id || s._id === id ? { ...s, ...supplierData } : s));
-      localStorage.setItem('inventory_suppliers', JSON.stringify(updated));
-      return updated;
-    });
-    addTransaction('SUPPLIER', `Memperbarui data supplier: ${supplierData.name}`);
-
+    if (!userId) return;
     try {
-      await fetch(`/api/suppliers?id=${id}`, {
+      const res = await fetch(`/api/suppliers?id=${id}&user_id=${encodeURIComponent(userId)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(supplierData),
+        body: JSON.stringify({ ...supplierData, user_id: userId })
       });
-      fetchData();
-    } catch (err) {
-      console.error('API sync error (updateSupplier):', err);
+      if (res.ok) {
+        const updated = await res.json();
+        const actualSupplier = updated.data || updated;
+        setSuppliers(prev => prev.map(s => s.id === id ? actualSupplier : s));
+        return actualSupplier;
+      }
+    } catch (error) {
+      console.error('Gagal memperbarui supplier:', error);
     }
   };
 
   const deleteSupplier = async (id) => {
-    setSuppliers((prev) => {
-      const updated = prev.filter((s) => s.id !== id && s._id !== id);
-      localStorage.setItem('inventory_suppliers', JSON.stringify(updated));
-      return updated;
-    });
-    addTransaction('SUPPLIER', `Menghapus data supplier ID: ${id}`);
-
+    if (!userId) return;
     try {
-      await fetch(`/api/suppliers?id=${id}`, {
+      const res = await fetch(`/api/suppliers?id=${id}&user_id=${encodeURIComponent(userId)}`, {
         method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId })
       });
-      fetchData();
-    } catch (err) {
-      console.error('API sync error (deleteSupplier):', err);
+      if (res.ok) {
+        setSuppliers(prev => prev.filter(s => s.id !== id));
+      }
+    } catch (error) {
+      console.error('Gagal menghapus supplier:', error);
+    }
+  };
+
+  const addTransaction = async (txData) => {
+    if (!userId) return;
+    try {
+      const res = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...txData, user_id: userId })
+      });
+      if (res.ok) {
+        const created = await res.json();
+        const actualTx = created.data || created;
+        setTransactions(prev => [actualTx, ...prev]);
+        return actualTx;
+      }
+    } catch (error) {
+      console.error('Gagal menambah transaksi:', error);
     }
   };
 
   return (
-    <InventoryContext.Provider
-      value={{
-        items,
-        suppliers,
-        transactions,
-        companyName,
-        setCompanyName: handleSetCompanyName,
-        loading,
-        addItem,
-        updateItem,
-        deleteItem,
-        addSupplier,
-        updateSupplier,
-        deleteSupplier,
-        refreshData: fetchData,
-      }}
-    >
+    <InventoryContext.Provider value={{
+      items,
+      suppliers,
+      transactions,
+      loading,
+      addItem,
+      updateItem,
+      deleteItem,
+      addSupplier,
+      updateSupplier,
+      deleteSupplier,
+      addTransaction
+    }}>
       {children}
     </InventoryContext.Provider>
   );
-}
+};
 
-export function useInventory() {
-  return useContext(InventoryContext);
-}
+export const useInventory = () => useContext(InventoryContext);
