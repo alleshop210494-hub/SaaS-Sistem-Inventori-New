@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useInventory } from '../context/InventoryContext';
 
-export default function InventoryTransactions() {
+export function InventoryTransactions() {
   const { items, transactions, addTransaction, loading } = useInventory();
   
   const [productId, setProductId] = useState('');
@@ -133,3 +133,5 @@ export default function InventoryTransactions() {
     </div>
   );
 }
+
+export default InventoryTransactions;
