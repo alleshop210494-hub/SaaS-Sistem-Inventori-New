@@ -20,7 +20,24 @@ export function Header() {
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <UserButton afterSignOutUrl="/" />
+        <UserButton 
+          afterSignOutUrl="/" 
+          appearance={{
+            elements: {
+              footer: "hidden",
+              userButtonPopoverFooter: "hidden"
+            }
+          }}
+          userProfileProps={{
+            appearance: {
+              elements: {
+                navbarFooter: "hidden",
+                footer: "hidden",
+                badge: "hidden"
+              }
+            }
+          }}
+        />
       </div>
     </header>
   );
