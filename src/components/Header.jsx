@@ -2,7 +2,7 @@ import React from 'react';
 import { useInventory } from '../features/inventory/context/InventoryContext';
 import { UserButton } from '@clerk/clerk-react';
 
-export default function Header() {
+export function Header() {
   const { companyName, setCompanyName } = useInventory();
 
   return (
