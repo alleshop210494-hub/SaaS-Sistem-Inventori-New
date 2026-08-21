@@ -12,7 +12,6 @@ export const InventoryProvider = ({ children }) => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Mengambil semua data langsung dari database Neon via API setiap kali user aktif/berubah
   useEffect(() => {
     if (!userId) {
       setItems([]);
