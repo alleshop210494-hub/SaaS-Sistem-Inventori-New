@@ -11,9 +11,12 @@ export const InventoryProvider = ({ children }) => {
   const [suppliers, setSuppliers] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
+  
+  // State Nama Perusahaan murni dalam memori (tanpa localStorage)
+  const [companyName, setCompanyName] = useState('PT Sinar Inventori Mandiri');
+
   const hasLoggedLogin = useRef(false);
 
-  // Fungsi otomatis untuk mencatat aktivitas ke database
   const logActivity = async (type, notes, product_id = null) => {
     if (!userId) return;
     try {
@@ -63,7 +66,6 @@ export const InventoryProvider = ({ children }) => {
           setTransactions(Array.isArray(transactionsData) ? transactionsData : transactionsData.data || []);
         }
 
-        // Catat aktivitas login otomatis sekali per sesi
         if (!hasLoggedLogin.current) {
           hasLoggedLogin.current = true;
           await logActivity('LOGIN', `Pengguna masuk ke sistem.`);
@@ -198,6 +200,8 @@ export const InventoryProvider = ({ children }) => {
       suppliers,
       transactions,
       loading,
+      companyName,
+      setCompanyName,
       addItem,
       updateItem,
       deleteItem,
