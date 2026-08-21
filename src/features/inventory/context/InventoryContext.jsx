@@ -14,30 +14,6 @@ export const InventoryProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const hasLoggedLogin = useRef(false);
 
-  // Sinkronisasi nama perusahaan dari server Clerk unsafeMetadata saat user dimuat
-  useEffect(() => {
-    if (user && user.unsafeMetadata?.companyName) {
-      setCompanyNameState(user.unsafeMetadata.companyName);
-    }
-  }, [user]);
-
-  // Fungsi untuk mengubah nama perusahaan dan menyimpannya secara permanen ke server Clerk (tanpa localStorage)
-  const setCompanyName = async (newName) => {
-    setCompanyNameState(newName);
-    if (user) {
-      try {
-        await user.update({
-          unsafeMetadata: {
-            ...user.unsafeMetadata,
-            companyName: newName,
-          },
-        });
-      } catch (error) {
-        console.error('Gagal menyimpan nama perusahaan ke server Clerk:', error);
-      }
-    }
-  };
-
   // Fungsi otomatis untuk mencatat aktivitas ke database
   const logActivity = async (type, notes, product_id = null) => {
     if (!userId) return;
@@ -57,11 +33,13 @@ export const InventoryProvider = ({ children }) => {
     }
   };
 
+  // Ambil semua data termasuk nama perusahaan dari database saat user masuk
   useEffect(() => {
     if (!userId) {
       setItems([]);
       setSuppliers([]);
       setTransactions([]);
+      setCompanyNameState('Nama Perusahaan');
       hasLoggedLogin.current = false;
       return;
     }
@@ -69,10 +47,11 @@ export const InventoryProvider = ({ children }) => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const [itemsRes, suppliersRes, transactionsRes] = await Promise.all([
+        const [itemsRes, suppliersRes, transactionsRes, settingsRes] = await Promise.all([
           fetch(`/api/items?user_id=${encodeURIComponent(userId)}`),
           fetch(`/api/suppliers?user_id=${encodeURIComponent(userId)}`),
-          fetch(`/api/transactions?user_id=${encodeURIComponent(userId)}`)
+          fetch(`/api/transactions?user_id=${encodeURIComponent(userId)}`),
+          fetch(`/api/settings?user_id=${encodeURIComponent(userId)}`)
         ]);
 
         if (itemsRes.ok) {
@@ -86,6 +65,12 @@ export const InventoryProvider = ({ children }) => {
         if (transactionsRes.ok) {
           const transactionsData = await transactionsRes.json();
           setTransactions(Array.isArray(transactionsData) ? transactionsData : transactionsData.data || []);
+        }
+        if (settingsRes.ok) {
+          const settingsData = await settingsRes.json();
+          if (settingsData && settingsData.company_name) {
+            setCompanyNameState(settingsData.company_name);
+          }
         }
 
         // Catat aktivitas login otomatis sekali per sesi
@@ -102,6 +87,21 @@ export const InventoryProvider = ({ children }) => {
 
     fetchData();
   }, [userId]);
+
+  // Fungsi untuk mengubah dan menyimpan nama perusahaan langsung ke database Neon
+  const setCompanyName = async (newName) => {
+    setCompanyNameState(newName);
+    if (!userId) return;
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, company_name: newName })
+      });
+    } catch (error) {
+      console.error('Gagal menyimpan nama perusahaan ke database:', error);
+    }
+  };
 
   const addItem = async (newItemData) => {
     if (!userId) return;
