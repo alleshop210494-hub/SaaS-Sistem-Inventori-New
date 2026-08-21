@@ -87,7 +87,6 @@ export const exportToExcel = (items, filename = 'Laporan_Inventori.xls', company
         <Column ss:Width="120"/>
         <Column ss:Width="130"/>
         
-        {/* Baris Nama Perusahaan */}
         <Row ss:Height="28">
           <Cell ss:StyleID="Title"><Data ss:Type="String">${companyName}</Data></Cell>
         </Row>
