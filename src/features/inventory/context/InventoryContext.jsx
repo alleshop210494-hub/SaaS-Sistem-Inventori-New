@@ -51,7 +51,7 @@ export const InventoryProvider = ({ children }) => {
           fetch(`/api/items?user_id=${encodeURIComponent(userId)}`),
           fetch(`/api/suppliers?user_id=${encodeURIComponent(userId)}`),
           fetch(`/api/transactions?user_id=${encodeURIComponent(userId)}`),
-          fetch(`/api/settings?user_id=${encodeURIComponent(userId)}`)
+          fetch(`/api/settings?user_id=${encodeURIComponent(userId)}`) // Ambil nama perusahaan dari database
         ]);
 
         if (itemsRes.ok) {
