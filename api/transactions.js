@@ -33,8 +33,8 @@ export default async function handler(req, res) {
         if (!userId) {
           return res.status(400).json({ success: false, message: 'user_id diperlukan.' });
         }
-        if (!product_id || !type || quantity === undefined) {
-          return res.status(400).json({ success: false, message: 'product_id, type, dan quantity wajib diisi.' });
+        if (!type) {
+          return res.status(400).json({ success: false, message: 'type aktivitas wajib diisi.' });
         }
 
         const query = `
@@ -43,9 +43,9 @@ export default async function handler(req, res) {
           RETURNING *
         `;
         const values = [
-          parseInt(product_id),
+          product_id ? parseInt(product_id) : null,
           type,
-          parseInt(quantity),
+          quantity !== undefined ? parseInt(quantity) : 0,
           notes || '',
           userId
         ];
@@ -66,9 +66,9 @@ export default async function handler(req, res) {
         );
 
         if (rowCount === 0) {
-          return res.status(404).json({ success: false, message: 'Transaksi tidak ditemukan atau tidak diizinkan.' });
+          return res.status(404).json({ success: false, message: 'Log tidak ditemukan atau tidak diizinkan.' });
         }
-        return res.status(200).json({ success: true, message: 'Transaksi berhasil dihapus.' });
+        return res.status(200).json({ success: true, message: 'Log berhasil dihapus.' });
       }
 
       default:

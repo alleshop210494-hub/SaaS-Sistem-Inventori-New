@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/clerk-react';
 
 const InventoryContext = createContext();
@@ -11,12 +11,33 @@ export const InventoryProvider = ({ children }) => {
   const [suppliers, setSuppliers] = useState([]);
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const hasLoggedLogin = useRef(false);
+
+  // Fungsi otomatis untuk mencatat aktivitas ke database
+  const logActivity = async (type, notes, product_id = null) => {
+    if (!userId) return;
+    try {
+      const res = await fetch('/api/transactions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ product_id, type, quantity: 0, notes, user_id: userId })
+      });
+      if (res.ok) {
+        const created = await res.json();
+        const actualTx = created.data || created;
+        setTransactions(prev => [actualTx, ...prev]);
+      }
+    } catch (error) {
+      console.error('Gagal mencatat log aktivitas:', error);
+    }
+  };
 
   useEffect(() => {
     if (!userId) {
       setItems([]);
       setSuppliers([]);
       setTransactions([]);
+      hasLoggedLogin.current = false;
       return;
     }
 
@@ -41,6 +62,12 @@ export const InventoryProvider = ({ children }) => {
           const transactionsData = await transactionsRes.json();
           setTransactions(Array.isArray(transactionsData) ? transactionsData : transactionsData.data || []);
         }
+
+        // Catat aktivitas login otomatis sekali per sesi
+        if (!hasLoggedLogin.current) {
+          hasLoggedLogin.current = true;
+          await logActivity('LOGIN', `Pengguna masuk ke sistem.`);
+        }
       } catch (error) {
         console.error('Gagal mengambil data dari server:', error);
       } finally {
@@ -63,6 +90,7 @@ export const InventoryProvider = ({ children }) => {
         const created = await res.json();
         const actualItem = created.data || created;
         setItems(prev => [actualItem, ...prev]);
+        await logActivity('TAMBAH_PRODUK', `Menambahkan produk baru: ${actualItem.name || newItemData.name}`, actualItem.id);
         return actualItem;
       }
     } catch (error) {
@@ -82,6 +110,7 @@ export const InventoryProvider = ({ children }) => {
         const updated = await res.json();
         const actualItem = updated.data || updated;
         setItems(prev => prev.map(item => item.id === id ? actualItem : item));
+        await logActivity('UPDATE_PRODUK', `Memperbarui data produk: ${actualItem.name || updatedData.name || id}`, id);
         return actualItem;
       }
     } catch (error) {
@@ -99,6 +128,7 @@ export const InventoryProvider = ({ children }) => {
       });
       if (res.ok) {
         setItems(prev => prev.filter(item => item.id !== id));
+        await logActivity('HAPUS_PRODUK', `Menghapus produk dengan ID: ${id}`, id);
       }
     } catch (error) {
       console.error('Gagal menghapus item:', error);
@@ -117,6 +147,7 @@ export const InventoryProvider = ({ children }) => {
         const created = await res.json();
         const actualSupplier = created.data || created;
         setSuppliers(prev => [actualSupplier, ...prev]);
+        await logActivity('TAMBAH_SUPPLIER', `Menambahkan supplier baru: ${actualSupplier.name || supplierData.name}`);
         return actualSupplier;
       }
     } catch (error) {
@@ -136,6 +167,7 @@ export const InventoryProvider = ({ children }) => {
         const updated = await res.json();
         const actualSupplier = updated.data || updated;
         setSuppliers(prev => prev.map(s => s.id === id ? actualSupplier : s));
+        await logActivity('UPDATE_SUPPLIER', `Memperbarui data supplier: ${actualSupplier.name || supplierData.name || id}`);
         return actualSupplier;
       }
     } catch (error) {
@@ -153,28 +185,10 @@ export const InventoryProvider = ({ children }) => {
       });
       if (res.ok) {
         setSuppliers(prev => prev.filter(s => s.id !== id));
+        await logActivity('HAPUS_SUPPLIER', `Menghapus supplier dengan ID: ${id}`);
       }
     } catch (error) {
       console.error('Gagal menghapus supplier:', error);
-    }
-  };
-
-  const addTransaction = async (txData) => {
-    if (!userId) return;
-    try {
-      const res = await fetch('/api/transactions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...txData, user_id: userId })
-      });
-      if (res.ok) {
-        const created = await res.json();
-        const actualTx = created.data || created;
-        setTransactions(prev => [actualTx, ...prev]);
-        return actualTx;
-      }
-    } catch (error) {
-      console.error('Gagal menambah transaksi:', error);
     }
   };
 
@@ -190,7 +204,7 @@ export const InventoryProvider = ({ children }) => {
       addSupplier,
       updateSupplier,
       deleteSupplier,
-      addTransaction
+      logActivity
     }}>
       {children}
     </InventoryContext.Provider>
