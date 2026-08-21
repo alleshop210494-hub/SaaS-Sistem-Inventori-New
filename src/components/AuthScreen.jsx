@@ -32,12 +32,26 @@ export default function AuthScreen() {
           </button>
         </div>
 
-        {/* Komponen Clerk untuk Login atau Sign Up */}
+        {/* Komponen Clerk dengan pengaturan appearance untuk menyembunyikan footer */}
         <div className="flex justify-center">
           {isSignUp ? (
-            <SignUp routing="hash" />
+            <SignUp 
+              routing="hash" 
+              appearance={{
+                elements: {
+                  footer: "hidden" // Menyembunyikan bagian footer/branding Clerk
+                }
+              }}
+            />
           ) : (
-            <SignIn routing="hash" />
+            <SignIn 
+              routing="hash" 
+              appearance={{
+                elements: {
+                  footer: "hidden" // Menyembunyikan bagian footer/branding Clerk
+                }
+              }}
+            />
           )}
         </div>
 
