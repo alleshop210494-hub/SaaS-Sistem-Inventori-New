@@ -1,4 +1,4 @@
-export const exportToExcel = (items, filename = 'Laporan_Inventori.xls') => {
+export const exportToExcel = (items, filename = 'Laporan_Inventori.xls', companyName = 'Nama Perusahaan') => {
   if (!items || items.length === 0) {
     alert('Tidak ada data untuk diexport.');
     return;
@@ -26,9 +26,12 @@ export const exportToExcel = (items, filename = 'Laporan_Inventori.xls') => {
         <Interior ss:Color="#0F172A" ss:Pattern="Solid"/>
       </Style>
       <Style ss:ID="Title">
-        <Font ss:Bold="1" ss:Size="14" ss:Color="#0F172A" ss:FontName="Arial"/>
+        <Font ss:Bold="1" ss:Size="16" ss:Color="#0F172A" ss:FontName="Arial"/>
       </Style>
       <Style ss:ID="Subtitle">
+        <Font ss:Bold="1" ss:Size="12" ss:Color="#334155" ss:FontName="Arial"/>
+      </Style>
+      <Style ss:ID="MetaText">
         <Font ss:Size="10" ss:Color="#475569" ss:FontName="Arial"/>
       </Style>
       <Style ss:ID="CellData">
@@ -84,11 +87,15 @@ export const exportToExcel = (items, filename = 'Laporan_Inventori.xls') => {
         <Column ss:Width="120"/>
         <Column ss:Width="130"/>
         
-        <Row ss:Height="25">
-          <Cell ss:StyleID="Title"><Data ss:Type="String">Laporan Ringkasan Eksekutif Inventori</Data></Cell>
+        {/* Baris Nama Perusahaan */}
+        <Row ss:Height="28">
+          <Cell ss:StyleID="Title"><Data ss:Type="String">${companyName}</Data></Cell>
+        </Row>
+        <Row ss:Height="20">
+          <Cell ss:StyleID="Subtitle"><Data ss:Type="String">Laporan Ringkasan Eksekutif Inventori</Data></Cell>
         </Row>
         <Row ss:Height="18">
-          <Cell ss:StyleID="Subtitle"><Data ss:Type="String">Tanggal Cetak: ${new Date().toLocaleString('id-ID')} | Total Jenis Barang: ${items.length} Item</Data></Cell>
+          <Cell ss:StyleID="MetaText"><Data ss:Type="String">Tanggal Cetak: ${new Date().toLocaleString('id-ID')} | Total Jenis Barang: ${items.length} Item</Data></Cell>
         </Row>
         <Row ss:Height="10"/>
         
