@@ -14,21 +14,21 @@ export const InventoryProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const hasLoggedLogin = useRef(false);
 
-  // Sinkronisasi nama perusahaan dari server Clerk publicMetadata saat user dimuat
+  // Sinkronisasi nama perusahaan dari server Clerk unsafeMetadata saat user dimuat
   useEffect(() => {
-    if (user && user.publicMetadata?.companyName) {
-      setCompanyNameState(user.publicMetadata.companyName);
+    if (user && user.unsafeMetadata?.companyName) {
+      setCompanyNameState(user.unsafeMetadata.companyName);
     }
   }, [user]);
 
-  // Fungsi untuk mengubah nama perusahaan dan menyimpannya secara permanen ke server Clerk
+  // Fungsi untuk mengubah nama perusahaan dan menyimpannya secara permanen ke server Clerk (tanpa localStorage)
   const setCompanyName = async (newName) => {
     setCompanyNameState(newName);
     if (user) {
       try {
         await user.update({
-          publicMetadata: {
-            ...user.publicMetadata,
+          unsafeMetadata: {
+            ...user.unsafeMetadata,
             companyName: newName,
           },
         });
