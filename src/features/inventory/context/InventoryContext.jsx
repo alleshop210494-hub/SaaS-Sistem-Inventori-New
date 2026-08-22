@@ -14,6 +14,36 @@ export const InventoryProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const hasLoggedLogin = useRef(false);
 
+  // Default kolom awal sebelum tersinkronisasi dari database Neon
+  const defaultColumns = [
+    { key: 'sku', label: 'SKU', visible: true },
+    { key: 'category', label: 'Kategori', visible: true },
+    { key: 'stock', label: 'Stok', visible: true },
+    { key: 'price', label: 'Harga Satuan', visible: true },
+    { key: 'total_harga', label: 'Harga Total', visible: true }
+  ];
+
+  const [customColumns, setCustomColumns] = useState(defaultColumns);
+
+  // Fungsi untuk memperbarui dan menyimpan konfigurasi kolom kustom langsung ke Database Neon via API /api/settings
+  const updateCustomColumns = async (newColumns) => {
+    setCustomColumns(newColumns);
+    if (!userId) return;
+    try {
+      await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          user_id: userId, 
+          company_name: companyName, 
+          custom_columns: JSON.stringify(newColumns) 
+        })
+      });
+    } catch (error) {
+      console.error('Gagal menyimpan custom columns ke database:', error);
+    }
+  };
+
   // Fungsi otomatis untuk mencatat aktivitas ke database
   const logActivity = async (type, notes, product_id = null) => {
     if (!userId) return;
@@ -33,13 +63,14 @@ export const InventoryProvider = ({ children }) => {
     }
   };
 
-  // Ambil semua data termasuk nama perusahaan dari database saat user masuk
+  // Ambil semua data termasuk nama perusahaan dan custom columns dari database saat user masuk
   useEffect(() => {
     if (!userId) {
       setItems([]);
       setSuppliers([]);
       setTransactions([]);
       setCompanyNameState('Nama Perusahaan');
+      setCustomColumns(defaultColumns);
       hasLoggedLogin.current = false;
       return;
     }
@@ -51,7 +82,7 @@ export const InventoryProvider = ({ children }) => {
           fetch(`/api/items?user_id=${encodeURIComponent(userId)}`),
           fetch(`/api/suppliers?user_id=${encodeURIComponent(userId)}`),
           fetch(`/api/transactions?user_id=${encodeURIComponent(userId)}`),
-          fetch(`/api/settings?user_id=${encodeURIComponent(userId)}`) // Ambil nama perusahaan dari database
+          fetch(`/api/settings?user_id=${encodeURIComponent(userId)}`) // Ambil pengaturan dari database Neon
         ]);
 
         if (itemsRes.ok) {
@@ -68,8 +99,22 @@ export const InventoryProvider = ({ children }) => {
         }
         if (settingsRes.ok) {
           const settingsData = await settingsRes.json();
-          if (settingsData && settingsData.company_name) {
-            setCompanyNameState(settingsData.company_name);
+          if (settingsData) {
+            if (settingsData.company_name) {
+              setCompanyNameState(settingsData.company_name);
+            }
+            if (settingsData.custom_columns) {
+              try {
+                const parsed = typeof settingsData.custom_columns === 'string' 
+                  ? JSON.parse(settingsData.custom_columns) 
+                  : settingsData.custom_columns;
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  setCustomColumns(parsed);
+                }
+              } catch (e) {
+                console.error('Gagal memparsing custom_columns dari database:', e);
+              }
+            }
           }
         }
 
@@ -88,7 +133,7 @@ export const InventoryProvider = ({ children }) => {
     fetchData();
   }, [userId]);
 
-  // Fungsi untuk mengubah dan menyimpan nama perusahaan langsung ke database Neon
+  // Fungsi untuk mengubah dan menyimpan nama perusahaan langsung ke database Neon (serta menjaga custom_columns agar tidak tertimpa)
   const setCompanyName = async (newName) => {
     setCompanyNameState(newName);
     if (!userId) return;
@@ -96,7 +141,11 @@ export const InventoryProvider = ({ children }) => {
       await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_id: userId, company_name: newName })
+        body: JSON.stringify({ 
+          user_id: userId, 
+          company_name: newName,
+          custom_columns: JSON.stringify(customColumns)
+        })
       });
     } catch (error) {
       console.error('Gagal menyimpan nama perusahaan ke database:', error);
@@ -225,6 +274,8 @@ export const InventoryProvider = ({ children }) => {
       loading,
       companyName,
       setCompanyName,
+      customColumns,
+      updateCustomColumns,
       addItem,
       updateItem,
       deleteItem,
