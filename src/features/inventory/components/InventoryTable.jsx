@@ -16,6 +16,18 @@ export function InventoryTable({ onEdit }) {
   const [showColumnModal, setShowColumnModal] = useState(false);
   const [newColLabel, setNewColLabel] = useState('');
 
+  // Kolom bawaan (default) mencakup SKU, Kategori, Stok, Harga Satuan, dan Harga Total
+  const defaultColumns = [
+    { key: 'sku', label: 'SKU', visible: true },
+    { key: 'category', label: 'Kategori', visible: true },
+    { key: 'stock', label: 'Stok', visible: true },
+    { key: 'price', label: 'Harga Satuan', visible: true },
+    { key: 'total_harga', label: 'Harga Total', visible: true }
+  ];
+
+  const activeColumns = customColumns && customColumns.length > 0 ? customColumns : defaultColumns;
+  const visibleColumns = activeColumns.filter(c => c.visible);
+
   const filteredItems = items.filter((item) => {
     const matchesSearch = 
       item.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -44,45 +56,60 @@ export function InventoryTable({ onEdit }) {
 
   // Helper untuk mengambil nilai sel, termasuk kalkulasi otomatis Total Harga
   const getItemValue = (item, key) => {
-    // Jika kolom adalah Total Harga (kalkulasi otomatis Stok x Harga Satuan)
     if (key === 'total_harga' || key === 'total') {
-      const total = (Number(item.stock) || 0) * (Number(item.price) || 0);
+      const total = (Number(item.stock || item.quantity) || 0) * (Number(item.price || item.unit_price) || 0);
       return `Rp ${Number(total).toLocaleString('id-ID')}`;
     }
 
-    if (['name', 'category', 'sku', 'stock', 'price'].includes(key)) {
-      if (key === 'price') return `Rp ${Number(item.price || 0).toLocaleString('id-ID')}`;
+    if (key === 'price') {
+      const priceVal = Number(item.price || item.unit_price || 0);
+      return `Rp ${priceVal.toLocaleString('id-ID')}`;
+    }
+
+    if (key === 'stock') {
+      return item.stock !== undefined && item.stock !== null ? item.stock : (item.quantity !== undefined ? item.quantity : 0);
+    }
+
+    if (['name', 'category', 'sku'].includes(key)) {
       return item[key] !== undefined && item[key] !== null ? item[key] : '-';
     }
     
-    const customVal = item.custom_fields?.[key];
+    const customVal = item.custom_fields?.[key] ?? item[key];
     return customVal !== undefined && customVal !== null && customVal !== '' ? customVal : '-';
   };
 
   const toggleColumnVisibility = (key) => {
-    const updated = customColumns.map(col => col.key === key ? { ...col, visible: !col.visible } : col);
-    updateCustomColumns(updated);
+    const targetColumns = customColumns && customColumns.length > 0 ? customColumns : defaultColumns;
+    const updated = targetColumns.map(col => col.key === key ? { ...col, visible: !col.visible } : col);
+    if (updateCustomColumns) {
+      updateCustomColumns(updated);
+    }
   };
 
   const addCustomColumn = (e) => {
     e.preventDefault();
     if (!newColLabel.trim()) return;
     const key = newColLabel.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-    if (customColumns.some(c => c.key === key)) {
+    const targetColumns = customColumns && customColumns.length > 0 ? customColumns : defaultColumns;
+    
+    if (targetColumns.some(c => c.key === key)) {
       alert('Kolom dengan nama tersebut sudah ada.');
       return;
     }
-    const updated = [...customColumns, { key, label: newColLabel.trim(), visible: true }];
-    updateCustomColumns(updated);
+    const updated = [...targetColumns, { key, label: newColLabel.trim(), visible: true }];
+    if (updateCustomColumns) {
+      updateCustomColumns(updated);
+    }
     setNewColLabel('');
   };
 
   const removeCustomColumn = (key) => {
-    const updated = customColumns.filter(c => c.key !== key);
-    updateCustomColumns(updated);
+    const targetColumns = customColumns && customColumns.length > 0 ? customColumns : defaultColumns;
+    const updated = targetColumns.filter(c => c.key !== key);
+    if (updateCustomColumns) {
+      updateCustomColumns(updated);
+    }
   };
-
-  const visibleColumns = customColumns.filter(c => c.visible);
 
   const exportToExcel = () => {
     if (filteredItems.length === 0) {
@@ -94,11 +121,13 @@ export function InventoryTable({ onEdit }) {
       visibleColumns.forEach(col => {
         let val = item[col.key];
         if (col.key === 'price') {
-          val = Number(item.price || 0);
+          val = Number(item.price || item.unit_price || 0);
         } else if (col.key === 'total_harga' || col.key === 'total') {
-          val = (Number(item.stock) || 0) * (Number(item.price) || 0);
-        } else if (!['category', 'sku', 'stock'].includes(col.key)) {
-          val = item.custom_fields?.[col.key] || '-';
+          val = (Number(item.stock || item.quantity) || 0) * (Number(item.price || item.unit_price) || 0);
+        } else if (col.key === 'stock') {
+          val = Number(item.stock || item.quantity || 0);
+        } else if (!['category', 'sku'].includes(col.key)) {
+          val = item.custom_fields?.[col.key] || item[col.key] || '-';
         }
         rowData[col.label] = val;
       });
@@ -133,9 +162,9 @@ export function InventoryTable({ onEdit }) {
       idx + 1,
       item.name,
       ...visibleColumns.map(c => {
-        if (c.key === 'price') return Number(item.price || 0).toLocaleString('id-ID');
+        if (c.key === 'price') return Number(item.price || item.unit_price || 0).toLocaleString('id-ID');
         if (c.key === 'total_harga' || c.key === 'total') {
-          const tot = (Number(item.stock) || 0) * (Number(item.price) || 0);
+          const tot = (Number(item.stock || item.quantity) || 0) * (Number(item.price || item.unit_price) || 0);
           return tot.toLocaleString('id-ID');
         }
         return getItemValue(item, c.key);
@@ -261,11 +290,11 @@ export function InventoryTable({ onEdit }) {
           <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl border border-gray-100">
             <h4 className="text-lg font-bold text-gray-800 mb-2">Pengaturan Kolom Kustom</h4>
             <p className="text-xs text-gray-500 mb-4">
-              Atur kolom yang ingin ditampilkan (Contoh: Tambah kolom &quot;Total Harga&quot; untuk kalkulasi otomatis stok $\times$ harga).
+              Atur kolom yang ingin ditampilkan (termasuk Stok, Harga Satuan, dan Harga Total).
             </p>
 
             <div className="space-y-2 max-h-60 overflow-y-auto mb-4 pr-1">
-              {customColumns.map((col) => (
+              {activeColumns.map((col) => (
                 <div key={col.key} className="flex items-center justify-between p-2.5 bg-gray-50 rounded-xl border border-gray-100">
                   <label className="flex items-center gap-2.5 text-sm font-medium text-gray-700 cursor-pointer">
                     <input
@@ -276,7 +305,7 @@ export function InventoryTable({ onEdit }) {
                     />
                     {col.label}
                   </label>
-                  {!['sku', 'category', 'stock', 'price'].includes(col.key) && (
+                  {!['sku', 'category', 'stock', 'price', 'total_harga'].includes(col.key) && (
                     <button
                       type="button"
                       onClick={() => removeCustomColumn(col.key)}
@@ -292,7 +321,7 @@ export function InventoryTable({ onEdit }) {
             <form onSubmit={addCustomColumn} className="flex gap-2 mb-6">
               <input
                 type="text"
-                placeholder="Nama kolom (cth: Total Harga)..."
+                placeholder="Nama kolom baru..."
                 value={newColLabel}
                 onChange={(e) => setNewColLabel(e.target.value)}
                 className="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
@@ -338,13 +367,13 @@ export function InventoryTable({ onEdit }) {
                 </td>
               </tr>
             ) : (
-              filteredItems.map((item) => {
+              filteredItems.main || filteredItems.map((item) => {
                 const id = item.id || item._id;
                 return (
                   <tr key={id || Math.random()} className="hover:bg-gray-50/50 transition-colors">
                     <td className="py-4 px-6 font-medium text-gray-900">{item.name}</td>
                     {visibleColumns.map((col) => (
-                      <td key={col.key} className={`py-4 px-6 text-gray-600 ${col.key === 'sku' ? 'font-mono text-xs' : col.key === 'stock' ? 'font-semibold text-gray-800' : ''}`}>
+                      <td key={col.key} className={`py-4 px-6 text-gray-600 ${col.key === 'sku' ? 'font-mono text-xs' : col.key === 'stock' ? 'font-semibold text-gray-800' : col.key === 'total_harga' ? 'font-semibold text-gray-900' : ''}`}>
                         {getItemValue(item, col.key)}
                       </td>
                     ))}
